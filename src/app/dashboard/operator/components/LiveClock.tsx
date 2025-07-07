@@ -13,20 +13,20 @@ export default function LiveClock() {
   }, []);
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('es-CO', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
+    return date.toLocaleTimeString("es-CO", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
     });
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-CO', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("es-CO", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -37,9 +37,7 @@ export default function LiveClock() {
           <FiClock className="w-5 h-5 text-white" />
         </div>
         <div className="text-white">
-          <div className="text-2xl font-bold font-mono">
-            {formatTime(time)}
-          </div>
+          <div className="text-2xl font-bold font-mono">{formatTime(time)}</div>
           <div className="text-sm text-gray-300 capitalize">
             {formatDate(time)}
           </div>

@@ -17,10 +17,12 @@ export default function QRCodeModal({
 
   // Generar URL de QR usando un servicio público
   const qrData = `tel:${phoneNumber}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+    qrData
+  )}`;
 
   const handleDownload = () => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = qrUrl;
     link.download = `qr-ticket-${ticketNumber}.png`;
     document.body.appendChild(link);
@@ -52,11 +54,12 @@ export default function QRCodeModal({
               alt="QR Code"
               className="w-64 h-64 mx-auto"
               onError={(e) => {
-                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5Y2EzYWYiIGR5PSIuM2VtIiBzdHlsZT0iZm9udC1mYW1pbHk6c2Fucy1zZXJpZjt0ZXh0LWFuY2hvcjptaWRkbGUiPkVycm9yIGFsIGNhcmdhciBRUjwvdGV4dD48L3N2Zz4=';
+                e.currentTarget.src =
+                  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5Y2EzYWYiIGR5PSIuM2VtIiBzdHlsZT0iZm9udC1mYW1pbHk6c2Fucy1zZXJpZjt0ZXh0LWFuY2hvcjptaWRkbGUiPkVycm9yIGFsIGNhcmdhciBRUjwvdGV4dD48L3N2Zz4=";
               }}
             />
           </div>
-          
+
           <div className="mb-4">
             <p className="text-gray-600 text-sm mb-2">
               Escanea con tu teléfono para llamar directamente a:

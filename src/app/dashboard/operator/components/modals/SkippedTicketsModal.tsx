@@ -154,7 +154,8 @@ export default function SkippedTicketsModal({
 
                         <div className="bg-gray-50 rounded-lg p-3 mb-3">
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium">Razón:</span> {ticket.reason}
+                            <span className="font-medium">Razón:</span>{" "}
+                            {ticket.reason}
                           </p>
                         </div>
                       </div>

@@ -15,7 +15,7 @@ const cancelReasons = [
   "Documentación incompleta",
   "Cliente no respondió llamadas",
   "Solicitud fuera de horario",
-  "Otro motivo"
+  "Otro motivo",
 ];
 
 export default function CancelTicketModal({
@@ -29,8 +29,9 @@ export default function CancelTicketModal({
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
-    const finalReason = selectedReason === "Otro motivo" ? customReason : selectedReason;
-    
+    const finalReason =
+      selectedReason === "Otro motivo" ? customReason : selectedReason;
+
     if (!finalReason.trim()) return;
 
     setLoading(true);
@@ -64,7 +65,9 @@ export default function CancelTicketModal({
                 <FiAlertTriangle className="w-4 h-4 text-red-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Cancelar Ticket</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Cancelar Ticket
+                </h2>
                 <p className="text-sm text-gray-600">Ticket: {ticketNumber}</p>
               </div>
             </div>
@@ -83,12 +86,10 @@ export default function CancelTicketModal({
               <div className="flex">
                 <FiAlertTriangle className="w-5 h-5 text-red-500 mt-0.5 mr-3" />
                 <div>
-                  <h3 className="text-sm font-medium text-red-800">
-                    Atención
-                  </h3>
+                  <h3 className="text-sm font-medium text-red-800">Atención</h3>
                   <p className="text-sm text-red-700 mt-1">
-                    Esta acción cancelará permanentemente el ticket {ticketNumber}. 
-                    El cliente deberá solicitar un nuevo turno.
+                    Esta acción cancelará permanentemente el ticket{" "}
+                    {ticketNumber}. El cliente deberá solicitar un nuevo turno.
                   </p>
                 </div>
               </div>
@@ -147,7 +148,11 @@ export default function CancelTicketModal({
             </button>
             <button
               onClick={handleConfirm}
-              disabled={!selectedReason || (selectedReason === "Otro motivo" && !customReason.trim()) || loading}
+              disabled={
+                !selectedReason ||
+                (selectedReason === "Otro motivo" && !customReason.trim()) ||
+                loading
+              }
               className="flex-1 btn-danger disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Cancelando..." : "Confirmar Cancelación"}

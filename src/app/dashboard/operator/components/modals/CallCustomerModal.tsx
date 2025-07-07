@@ -36,7 +36,7 @@ export default function CallCustomerModal({
   };
 
   const handleCallDirect = () => {
-    window.open(`tel:${mockPhone}`, '_self');
+    window.open(`tel:${mockPhone}`, "_self");
   };
 
   if (!show) return null;
@@ -77,7 +77,9 @@ export default function CallCustomerModal({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Teléfono</p>
-                  <p className="text-2xl font-bold text-gray-900">{mockPhone}</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {mockPhone}
+                  </p>
                 </div>
                 <button
                   onClick={handleCopyPhone}
@@ -111,13 +113,17 @@ export default function CallCustomerModal({
                 <FiPhone size={18} />
                 <span>Llamar Ahora</span>
               </button>
-              
+
               <button
                 onClick={() => setShowQR(true)}
                 className="btn-primary flex items-center justify-center space-x-2 w-full"
               >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm6 0h2v2h-2V5zm4 0h2v2h-2V5zm-2 4h2v2h-2V9zm4-4v8h8V3h-8zm2 2h4v4h-4V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8 2h2v2h-2v-2zm0 4h2v2h-2v-2zm4 0h2v2h-2v-2zm-4-8h2v2h-2v-2zm4 0h2v2h-2v-2z"/>
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm6 0h2v2h-2V5zm4 0h2v2h-2V5zm-2 4h2v2h-2V9zm4-4v8h8V3h-8zm2 2h4v4h-4V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8 2h2v2h-2v-2zm0 4h2v2h-2v-2zm4 0h2v2h-2v-2zm-4-8h2v2h-2v-2zm4 0h2v2h-2v-2z" />
                 </svg>
                 <span>Ver QR</span>
               </button>

@@ -317,7 +317,10 @@ export default function OperatorDashboard() {
         {/* Panel Principal */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1 flex">
-            <CurrentTicketPanel currentTicket={currentTicket} isPaused={isPaused} />
+            <CurrentTicketPanel
+              currentTicket={currentTicket}
+              isPaused={isPaused}
+            />
             <ActionButtons
               currentTicket={currentTicket}
               handleCallCustomer={handleCallCustomer}

@@ -24,7 +24,9 @@ export default function UpcomingTickets() {
         </div>
         <div>
           <h3 className="text-white font-semibold">Próximos en Fila</h3>
-          <p className="text-gray-300 text-sm">{upcomingTickets.length} personas esperando</p>
+          <p className="text-gray-300 text-sm">
+            {upcomingTickets.length} personas esperando
+          </p>
         </div>
       </div>
 
@@ -36,10 +38,14 @@ export default function UpcomingTickets() {
           >
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm font-bold">#{index + 1}</span>
+                <span className="text-white text-sm font-bold">
+                  #{index + 1}
+                </span>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-white font-semibold">{ticket.number}</span>
+                <span className="text-white font-semibold">
+                  {ticket.number}
+                </span>
                 {ticket.priority === "priority" && (
                   <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">
                     🔥
@@ -47,7 +53,7 @@ export default function UpcomingTickets() {
                 )}
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2 text-gray-300">
               <FiClock className="w-4 h-4" />
               <span className="text-sm">~{ticket.estimatedTime}min</span>
@@ -60,7 +66,12 @@ export default function UpcomingTickets() {
         <div className="flex justify-between text-sm">
           <span className="text-gray-300">Tiempo total estimado:</span>
           <span className="text-white font-semibold">
-            ~{upcomingTickets.reduce((acc, ticket) => acc + ticket.estimatedTime, 0)} min
+            ~
+            {upcomingTickets.reduce(
+              (acc, ticket) => acc + ticket.estimatedTime,
+              0
+            )}{" "}
+            min
           </span>
         </div>
       </div>

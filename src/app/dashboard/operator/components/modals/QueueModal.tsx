@@ -135,7 +135,9 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
               <div className="text-2xl font-bold text-red-600">
                 {ticketsInQueue.filter((t) => t.priority === "priority").length}
               </div>
-              <div className="text-sm text-red-600 font-medium">Prioritarios</div>
+              <div className="text-sm text-red-600 font-medium">
+                Prioritarios
+              </div>
             </div>
           </div>
 
@@ -151,7 +153,9 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
                     <div className="flex items-center space-x-4">
                       {/* Posición en fila */}
                       <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold">#{index + 1}</span>
+                        <span className="text-white font-bold">
+                          #{index + 1}
+                        </span>
                       </div>
 
                       {/* Información del ticket */}
