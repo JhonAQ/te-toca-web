@@ -35,18 +35,29 @@ export default function QueueSelectionPage() {
   });
 
   useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      // router.push("/auth/login");
+      return;
+    }
+
+    const savedWorkerName = localStorage.getItem("workerName");
+    if (savedWorkerName) {
+      setWorkerName(savedWorkerName);
+    }
+
     fetchQueues();
-  }, []);
+  }, [router]);
 
   const fetchQueues = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Simular llamada a API - reemplazar con la llamada real
+      const token = localStorage.getItem("authToken");
       const response = await fetch("/api/worker/queues", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -139,10 +150,37 @@ export default function QueueSelectionPage() {
     setSelectedQueue(queueId === selectedQueue ? null : queueId);
   };
 
-  const handleStartWork = () => {
-    if (selectedQueue) {
-      // Guardar la cola seleccionada en localStorage o estado global
+  const handleStartWork = async () => {
+    if (!selectedQueue) return;
+
+    try {
+      // Notificar al backend que el operario ha seleccionado una cola
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("/api/worker/select-queue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ queueId: selectedQueue }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al seleccionar la cola");
+      }
+
+      // Guardar la cola seleccionada
+      const selectedQueueData = queues.find((q) => q.id === selectedQueue);
       localStorage.setItem("selectedQueue", selectedQueue);
+      localStorage.setItem("selectedQueueName", selectedQueueData?.name || "");
+
+      router.push("/dashboard/operator");
+    } catch (err) {
+      console.error("Error al seleccionar cola:", err);
+      // En modo desarrollo, permitir continuar sin validación del backend
+      localStorage.setItem("selectedQueue", selectedQueue);
+      const selectedQueueData = queues.find((q) => q.id === selectedQueue);
+      localStorage.setItem("selectedQueueName", selectedQueueData?.name || "");
       router.push("/dashboard/operator");
     }
   };
@@ -150,6 +188,8 @@ export default function QueueSelectionPage() {
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("selectedQueue");
+    localStorage.removeItem("selectedQueueName");
+    localStorage.removeItem("workerName");
     router.push("/auth/login");
   };
 
@@ -237,12 +277,17 @@ export default function QueueSelectionPage() {
                         {queues.find((q) => q.id === selectedQueue)?.name}
                       </p>
                     </div>
-                    <button
-                      onClick={handleStartWork}
-                      className="bg-secondary hover:bg-secondary-hover text-white px-8 py-3 rounded-lg font-medium transition-colors"
-                    >
-                      Comenzar a Trabajar
-                    </button>
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => setSelectedQueue(null)}
+                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button onClick={handleStartWork} className="btn-primary">
+                        Comenzar a Trabajar
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

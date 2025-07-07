@@ -1,6 +1,13 @@
-import { FiPhone, FiCheck, FiArrowRight, FiRefreshCw, FiX } from "react-icons/fi";
+import {
+  FiPhone,
+  FiCheck,
+  FiArrowRight,
+  FiRefreshCw,
+  FiX,
+} from "react-icons/fi";
 
 interface ActionButtonsProps {
+  currentTicket: string | null;
   handleCallCustomer: () => void;
   handleFinishAttention: () => void;
   handleSkipTurn: () => void;
@@ -9,57 +16,80 @@ interface ActionButtonsProps {
 }
 
 export default function ActionButtons({
+  currentTicket,
   handleCallCustomer,
   handleFinishAttention,
   handleSkipTurn,
   handleCancelTicket,
   setShowSkippedModal,
 }: ActionButtonsProps) {
+  const hasTicket = Boolean(currentTicket);
+
   return (
-    <div className="flex-1/4 flex flex-col justify-center items-center bg-gray-300 space-y-6">
+    <div className="w-80 bg-white/5 backdrop-blur-sm border-l border-white/10 flex flex-col justify-center items-center p-8 space-y-4">
       {/* Botón Llamar */}
       <button
         onClick={handleCallCustomer}
-        className="flex items-center bg-green-500 w-90 space-x-3 bg-accent-green text-white px-6 py-4 rounded-lg hover:bg-green-600 transition-colors shadow-md"
+        disabled={!hasTicket}
+        className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
+          hasTicket
+            ? "btn-success hover:scale-105 active:scale-95"
+            : "bg-gray-600 text-gray-400 cursor-not-allowed"
+        }`}
       >
-        <FiPhone className="w-6 h-6" />
-        <span className="font-medium">Llamar</span>
+        <FiPhone className="w-5 h-5" />
+        <span>Llamar</span>
       </button>
 
       {/* Botón Terminar Atención */}
       <button
         onClick={handleFinishAttention}
-        className="flex items-center space-x-3 bg-blue-500 w-90 text-white px-6 py-4 rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+        disabled={!hasTicket}
+        className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
+          hasTicket
+            ? "btn-info hover:scale-105 active:scale-95"
+            : "bg-gray-600 text-gray-400 cursor-not-allowed"
+        }`}
       >
-        <FiCheck className="w-6 h-6" />
-        <span className="font-medium">Terminar Atención</span>
+        <FiCheck className="w-5 h-5" />
+        <span>Terminar Atención</span>
       </button>
 
       {/* Botón Saltar Turno */}
       <button
         onClick={handleSkipTurn}
-        className="flex items-center space-x-3 bg-orange-500 w-90 text-white px-6 py-4 rounded-lg hover:bg-yellow-600 transition-colors shadow-md"
+        disabled={!hasTicket}
+        className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
+          hasTicket
+            ? "btn-warning hover:scale-105 active:scale-95"
+            : "bg-gray-600 text-gray-400 cursor-not-allowed"
+        }`}
       >
-        <FiArrowRight className="w-6 h-6" />
-        <span className="font-medium">Saltar Turno</span>
+        <FiArrowRight className="w-5 h-5" />
+        <span>Saltar Turno</span>
       </button>
 
       {/* Botón Llamar Saltado */}
       <button
         onClick={() => setShowSkippedModal(true)}
-        className="flex items-center space-x-3 w-90 bg-secondary text-white px-6 py-4 rounded-lg hover:opacity-80 transition-colors shadow-md"
+        className="w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 btn-primary hover:scale-105 active:scale-95"
       >
-        <FiRefreshCw className="w-6 h-6" />
-        <span className="font-medium">Llamar Saltado</span>
+        <FiRefreshCw className="w-5 h-5" />
+        <span>Llamar Saltado</span>
       </button>
 
       {/* Botón Cancelar */}
       <button
         onClick={handleCancelTicket}
-        className="flex items-center bg-red-500 w-90 space-x-3 bg-accent-red text-white px-6 py-4 rounded-lg hover:bg-red-600 transition-colors shadow-md"
+        disabled={!hasTicket}
+        className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
+          hasTicket
+            ? "btn-danger hover:scale-105 active:scale-95"
+            : "bg-gray-600 text-gray-400 cursor-not-allowed"
+        }`}
       >
-        <FiX className="w-6 h-6" />
-        <span className="font-medium">Cancelar Ticket</span>
+        <FiX className="w-5 h-5" />
+        <span>Cancelar Ticket</span>
       </button>
     </div>
   );

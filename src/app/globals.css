@@ -1,22 +1,11 @@
 @import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,22 +18,30 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
 }
 
 /* Asegurarnos de que los placeholders tengan un color visible */
 ::placeholder {
-  color: #9ca3af !important; /* text-gray-400 equivalente */
+  color: #9ca3af !important;
   opacity: 1;
 }
 
-/* Asegurarnos de que los colores personalizados se apliquen correctamente */
+/* Colores personalizados */
 .bg-primary {
   background-color: #171130 !important;
 }
 
+.bg-primary-dark {
+  background-color: #0c0526 !important;
+}
+
 .bg-secondary {
   background-color: #7e87ef !important;
+}
+
+.bg-secondary-hover {
+  background-color: #6a73e6 !important;
 }
 
 .text-primary {
@@ -57,4 +54,158 @@ body {
 
 .hover\:bg-secondary\/90:hover {
   background-color: rgba(126, 135, 239, 0.9) !important;
+}
+
+/* Animaciones personalizadas */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(126, 135, 239, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(126, 135, 239, 0.8);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Estilos para botones */
+.btn-primary {
+  background-color: #7e87ef !important;
+  color: white !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-primary:hover {
+  background-color: #6a73e6 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-success {
+  background-color: #10b981 !important;
+  color: white !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-success:hover {
+  background-color: #059669 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-danger {
+  background-color: #ef4444 !important;
+  color: white !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-warning {
+  background-color: #f59e0b !important;
+  color: white !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-warning:hover {
+  background-color: #d97706 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-info {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-info:hover {
+  background-color: #2563eb !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Estilos para tarjetas */
+.card {
+  background-color: white !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e5e7eb !important;
+  transition: box-shadow 0.2s !important;
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.card-header {
+  padding: 1.5rem !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  background-color: #f9fafb !important;
+}
+
+.card-body {
+  padding: 1.5rem !important;
+}
+
+/* Estilos para modales */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 50 !important;
+}
+
+.modal-content {
+  background-color: white !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  max-width: 28rem !important;
+  width: 100% !important;
+  margin: 1rem !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}
+
+.modal-header {
+  padding: 1.5rem !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.modal-body {
+  padding: 1.5rem !important;
+}
+
+.modal-footer {
+  padding: 1.5rem !important;
+  border-top: 1px solid #e5e7eb !important;
+  background-color: #f9fafb !important;
 }

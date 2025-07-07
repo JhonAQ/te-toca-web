@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { FiLogOut } from "react-icons/fi";
+import { FiLogOut, FiRefreshCw } from "react-icons/fi";
+import { useState } from "react";
 
 interface HeaderProps {
   workerName: string;
@@ -7,6 +8,15 @@ interface HeaderProps {
 }
 
 export default function Header({ workerName, onLogout }: HeaderProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    // Simular refresh
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    window.location.reload();
+  };
+
   return (
     <header className="bg-primary shadow-sm px-6 py-4 flex justify-between items-center">
       <div className="flex items-center">
@@ -20,8 +30,19 @@ export default function Header({ workerName, onLogout }: HeaderProps) {
       </div>
 
       <div className="flex items-center space-x-4">
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="text-white hover:text-gray-300 transition-colors p-2 rounded-lg hover:bg-white/10"
+          title="Actualizar colas"
+        >
+          <FiRefreshCw
+            className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+        </button>
+
         <div className="text-right">
-          <p className="text-white text-sm">Bienvenido,</p>
+          <p className="text-gray-300 text-sm">Bienvenido,</p>
           <p className="text-white font-bold text-lg">{workerName}</p>
         </div>
 
@@ -37,7 +58,7 @@ export default function Header({ workerName, onLogout }: HeaderProps) {
 
         <button
           onClick={onLogout}
-          className="text-white hover:text-gray-300 transition-colors p-2"
+          className="text-white hover:text-gray-300 transition-colors p-2 rounded-lg hover:bg-white/10"
           title="Cerrar sesión"
         >
           <FiLogOut size={20} />
