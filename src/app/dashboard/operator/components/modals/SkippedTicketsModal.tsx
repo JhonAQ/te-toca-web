@@ -1,3 +1,5 @@
+import { FiPhone } from "react-icons/fi";
+
 interface SkippedTicketsModalProps {
   show: boolean;
   onClose: () => void;
@@ -18,13 +20,15 @@ export default function SkippedTicketsModal({
         <div className="space-y-2 mb-4">
           <div className="flex justify-between items-center p-2 bg-gray-100 rounded">
             <span className="text-gray-900">B12</span>
-            <button className="text-accent-green hover:text-green-600 font-medium">
+            <button className="text-accent-green hover:text-green-600 font-medium flex items-center">
+              <FiPhone className="mr-1" size={16} />
               Llamar
             </button>
           </div>
           <div className="flex justify-between items-center p-2 bg-gray-100 rounded">
             <span className="text-gray-900">C05</span>
-            <button className="text-accent-green hover:text-green-600 font-medium">
+            <button className="text-accent-green hover:text-green-600 font-medium flex items-center">
+              <FiPhone className="mr-1" size={16} />
               Llamar
             </button>
           </div>
