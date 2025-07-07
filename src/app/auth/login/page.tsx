@@ -182,18 +182,10 @@ export default function Login() {
                 {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </button>
             </form>
-
-            {isDevMode() && (
-              <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                <p className="text-orange-700 text-sm">
-                  <strong>Modo Desarrollo:</strong> Puedes usar cualquier
-                  usuario/contraseña
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+            </div>
+            </div>
+            </div>
+            </div>
+            
+            )
 }

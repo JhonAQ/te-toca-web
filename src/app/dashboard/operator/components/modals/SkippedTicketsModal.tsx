@@ -74,7 +74,7 @@ export default function SkippedTicketsModal({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content max-w-2xl">
+      <div className="modal-content min-w-150">
         <div className="modal-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">

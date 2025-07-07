@@ -13,7 +13,7 @@ export default function Header({
   onBackToQueues,
 }: HeaderProps) {
   return (
-    <header className="bg-primary shadow-sm px-6 py-4 flex justify-between items-center">
+    <header className="bg-primary shadow-sm px-6 flex justify-between items-center">
       <div className="flex items-center space-x-4">
         <Image
           src="/TeTocaLogo.png"

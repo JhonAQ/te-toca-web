@@ -19,7 +19,7 @@ export default function CallCustomerModal({
 }: CallCustomerModalProps) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const mockPhone = customerPhone || "+57 300 123 4567";
+  const mockPhone = customerPhone || "+51 943 123 567";
 
   useEffect(() => {
     if (copied) {

@@ -265,7 +265,7 @@ export default function OperatorDashboard() {
       setIsPaused(!isPaused);
       if (isDevMode()) {
         console.log(
-          isPaused ? "▶️ Reanudando atención" : "⏸️ Pausando atención"
+          isPaused ? "▶ Reanudando atención" : "⏸Pausando atención"
         );
       }
     } catch (error) {
@@ -337,7 +337,7 @@ export default function OperatorDashboard() {
         {/* Panel central - Ticket actual */}
         <div className="flex-1 flex relative">
           {/* Reloj flotante */}
-          <div className="absolute top-6 right-6 z-10">
+          <div className="absolute top-6 right-86 z-10">
             <LiveClock />
           </div>
 
@@ -374,7 +374,6 @@ export default function OperatorDashboard() {
       {isPaused && (
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-20">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 text-center">
-            <div className="text-6xl text-orange-400 mb-4">⏸️</div>
             <h2 className="text-2xl font-bold text-white mb-2">
               Atención Pausada
             </h2>
@@ -385,7 +384,6 @@ export default function OperatorDashboard() {
               onClick={handlePauseToggle}
               className="btn-primary flex items-center space-x-2 mx-auto"
             >
-              <span>▶️</span>
               <span>Reanudar Atención</span>
             </button>
           </div>

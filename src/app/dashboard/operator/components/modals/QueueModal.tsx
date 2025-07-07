@@ -61,20 +61,6 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
     },
   ];
 
-  const getPriorityBadge = (priority: string) => {
-    if (priority === "priority") {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-          🔥 Prioritario
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-        Normal
-      </span>
-    );
-  };
 
   const getEstimatedTimeColor = (minutes: number) => {
     if (minutes <= 5) return "text-green-600";
@@ -84,7 +70,7 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content max-w-2xl">
+      <div className="modal-content min-w-140">
         <div className="modal-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -164,7 +150,6 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
                           <span className="text-xl font-bold text-gray-900">
                             {ticket.number}
                           </span>
-                          {getPriorityBadge(ticket.priority)}
                         </div>
 
                         <div className="flex items-center space-x-4 text-sm">
