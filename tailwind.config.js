@@ -12,11 +12,18 @@ module.exports = {
       },
       colors: {
         primary: {
-          DEFAULT: "#0c0526",
+          DEFAULT: "#171130",
+          dark: "#0c0526",
         },
         secondary: {
-          DEFAULT: "#8075FF",
-          hover: "#6a63d8",
+          DEFAULT: "#7E87EF",
+          hover: "#6a73e6",
+        },
+        accent: {
+          green: "#10B981",
+          red: "#EF4444",
+          orange: "#F59E0B",
+          blue: "#3B82F6",
         },
       },
       animation: {

@@ -40,21 +40,21 @@ body {
 
 /* Asegurarnos de que los colores personalizados se apliquen correctamente */
 .bg-primary {
-  background-color: #0c0526 !important;
+  background-color: #171130 !important;
 }
 
 .bg-secondary {
-  background-color: #8075ff !important;
+  background-color: #7e87ef !important;
 }
 
 .text-primary {
-  color: #0c0526 !important;
+  color: #171130 !important;
 }
 
 .text-secondary {
-  color: #8075ff !important;
+  color: #7e87ef !important;
 }
 
 .hover\:bg-secondary\/90:hover {
-  background-color: rgba(128, 117, 255, 0.9) !important;
+  background-color: rgba(126, 135, 239, 0.9) !important;
 }
