@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { isDevMode, handleApiCall } from "@/utils/devMode";
 
 import Header from "./components/Header";
 import CurrentTicketPanel from "./components/CurrentTicketPanel";
@@ -20,6 +21,10 @@ export default function OperatorDashboard() {
   const [showSkippedModal, setShowSkippedModal] = useState(false);
   const [showQueueModal, setShowQueueModal] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Datos mock para desarrollo
+  const mockTickets = ["AB03", "CD15", "EF22", "GH08", "IJ14"];
+  const [mockTicketIndex, setMockTicketIndex] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -53,71 +58,70 @@ export default function OperatorDashboard() {
 
   const fetchNextTicket = async () => {
     try {
-      const token = localStorage.getItem("authToken");
-      const selectedQueue = localStorage.getItem("selectedQueue");
-
-      const response = await fetch(
-        `/api/operator/next-ticket?queueId=${selectedQueue}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const data = await handleApiCall(
+        () => {
+          const token = localStorage.getItem("authToken");
+          const selectedQueue = localStorage.getItem("selectedQueue");
+          return fetch(`/api/operator/next-ticket?queueId=${selectedQueue}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        },
+        { ticket: { number: mockTickets[mockTicketIndex] } },
+        300
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentTicket(data.ticket?.number || null);
-      }
+      setCurrentTicket(data.ticket?.number || null);
     } catch (error) {
       console.error("Error al obtener siguiente ticket:", error);
-      // Datos de ejemplo para desarrollo
-      setCurrentTicket("AB03");
     }
   };
 
   const fetchQueueStatus = async () => {
     try {
-      const token = localStorage.getItem("authToken");
-      const selectedQueue = localStorage.getItem("selectedQueue");
-
-      const response = await fetch(
-        `/api/operator/queue-status?queueId=${selectedQueue}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const data = await handleApiCall(
+        () => {
+          const token = localStorage.getItem("authToken");
+          const selectedQueue = localStorage.getItem("selectedQueue");
+          return fetch(`/api/operator/queue-status?queueId=${selectedQueue}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        },
+        { waitingCount: Math.floor(Math.random() * 20) + 5 },
+        300
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setQueueCount(data.waitingCount || 0);
-      }
+      setQueueCount(data.waitingCount || 0);
     } catch (error) {
       console.error("Error al obtener estado de cola:", error);
-      // Datos de ejemplo para desarrollo
-      setQueueCount(12);
     }
   };
 
-  // Funciones para manejar las acciones del operario
   const handleCallCustomer = async () => {
     if (!currentTicket) return;
 
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/operator/call-customer", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await handleApiCall(
+        () => {
+          const token = localStorage.getItem("authToken");
+          return fetch("/api/operator/call-customer", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ ticketNumber: currentTicket }),
+          });
         },
-        body: JSON.stringify({ ticketNumber: currentTicket }),
-      });
+        { success: true },
+        500
+      );
 
-      if (response.ok) {
-        console.log("Cliente llamado exitosamente");
+      if (isDevMode()) {
+        console.log(`📞 Llamando al cliente ${currentTicket}`);
       }
     } catch (error) {
       console.error("Error al llamar al cliente:", error);
@@ -128,21 +132,31 @@ export default function OperatorDashboard() {
     if (!currentTicket) return;
 
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/operator/finish-attention", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await handleApiCall(
+        () => {
+          const token = localStorage.getItem("authToken");
+          return fetch("/api/operator/finish-attention", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ ticketNumber: currentTicket }),
+          });
         },
-        body: JSON.stringify({ ticketNumber: currentTicket }),
-      });
+        { success: true },
+        500
+      );
 
-      if (response.ok) {
-        console.log("Atención terminada exitosamente");
-        await fetchNextTicket();
-        await fetchQueueStatus();
+      if (isDevMode()) {
+        console.log(`✅ Atención terminada para ${currentTicket}`);
+        // Simular siguiente ticket
+        const nextIndex = (mockTicketIndex + 1) % mockTickets.length;
+        setMockTicketIndex(nextIndex);
       }
+
+      await fetchNextTicket();
+      await fetchQueueStatus();
     } catch (error) {
       console.error("Error al terminar atención:", error);
     }
@@ -152,21 +166,30 @@ export default function OperatorDashboard() {
     if (!currentTicket) return;
 
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/operator/skip-turn", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await handleApiCall(
+        () => {
+          const token = localStorage.getItem("authToken");
+          return fetch("/api/operator/skip-turn", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ ticketNumber: currentTicket }),
+          });
         },
-        body: JSON.stringify({ ticketNumber: currentTicket }),
-      });
+        { success: true },
+        500
+      );
 
-      if (response.ok) {
-        console.log("Turno saltado exitosamente");
-        await fetchNextTicket();
-        await fetchQueueStatus();
+      if (isDevMode()) {
+        console.log(`⏭️ Turno saltado para ${currentTicket}`);
+        const nextIndex = (mockTicketIndex + 1) % mockTickets.length;
+        setMockTicketIndex(nextIndex);
       }
+
+      await fetchNextTicket();
+      await fetchQueueStatus();
     } catch (error) {
       console.error("Error al saltar turno:", error);
     }
@@ -176,21 +199,30 @@ export default function OperatorDashboard() {
     if (!currentTicket) return;
 
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/operator/cancel-ticket", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await handleApiCall(
+        () => {
+          const token = localStorage.getItem("authToken");
+          return fetch("/api/operator/cancel-ticket", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ ticketNumber: currentTicket }),
+          });
         },
-        body: JSON.stringify({ ticketNumber: currentTicket }),
-      });
+        { success: true },
+        500
+      );
 
-      if (response.ok) {
-        console.log("Ticket cancelado exitosamente");
-        await fetchNextTicket();
-        await fetchQueueStatus();
+      if (isDevMode()) {
+        console.log(`❌ Ticket cancelado ${currentTicket}`);
+        const nextIndex = (mockTicketIndex + 1) % mockTickets.length;
+        setMockTicketIndex(nextIndex);
       }
+
+      await fetchNextTicket();
+      await fetchQueueStatus();
     } catch (error) {
       console.error("Error al cancelar ticket:", error);
     }
@@ -198,19 +230,27 @@ export default function OperatorDashboard() {
 
   const handlePauseToggle = async () => {
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/operator/toggle-pause", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await handleApiCall(
+        () => {
+          const token = localStorage.getItem("authToken");
+          return fetch("/api/operator/toggle-pause", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ isPaused: !isPaused }),
+          });
         },
-        body: JSON.stringify({ isPaused: !isPaused }),
-      });
+        { success: true },
+        300
+      );
 
-      if (response.ok) {
-        setIsPaused(!isPaused);
-        console.log(isPaused ? "Reanudando atención" : "Pausando atención");
+      setIsPaused(!isPaused);
+      if (isDevMode()) {
+        console.log(
+          isPaused ? "▶️ Reanudando atención" : "⏸️ Pausando atención"
+        );
       }
     } catch (error) {
       console.error("Error al cambiar estado de pausa:", error);
@@ -268,6 +308,12 @@ export default function OperatorDashboard() {
         show={showQueueModal}
         onClose={() => setShowQueueModal(false)}
       />
+
+      {isDevMode() && (
+        <div className="fixed bottom-4 right-4 bg-orange-500 text-white px-3 py-2 rounded-lg text-sm">
+          🚀 Modo Desarrollo
+        </div>
+      )}
     </div>
   );
 }

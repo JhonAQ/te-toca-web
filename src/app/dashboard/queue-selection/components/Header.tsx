@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { FiLogOut, FiRefreshCw } from "react-icons/fi";
 import { useState } from "react";
+import { isDevMode } from "@/utils/devMode";
 
 interface HeaderProps {
   workerName: string;
@@ -19,7 +20,7 @@ export default function Header({ workerName, onLogout }: HeaderProps) {
 
   return (
     <header className="bg-primary shadow-sm px-6 py-4 flex justify-between items-center">
-      <div className="flex items-center">
+      <div className="flex items-center space-x-3">
         <Image
           src="/TeTocaLogo.png"
           alt="TeToca Logo"
@@ -27,6 +28,11 @@ export default function Header({ workerName, onLogout }: HeaderProps) {
           height={70}
           priority
         />
+        {isDevMode() && (
+          <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+            DEV
+          </span>
+        )}
       </div>
 
       <div className="flex items-center space-x-4">

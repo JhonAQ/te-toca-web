@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { isDevMode, handleApiCall } from "@/utils/devMode";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -17,30 +18,40 @@ export default function Login() {
     setIsPasswordVisible(!isPasswordVisible);
   };
 
-  let handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/dashboard");
-    return;
     setError("");
     setLoading(true);
 
     try {
-      const tenantId = "default";
-      const response = await fetch(`/api/auth/worker/login/${tenantId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      const data = await handleApiCall(
+        () =>
+          fetch(`/api/auth/worker/login/default`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ username, password }),
+          }),
+        {
+          token: "dev-token-123",
+          user: {
+            id: "1",
+            name: username || "Juan Pérez",
+            role: "operator",
+            tenantId: "default",
+          },
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error("Algo salio mal");
-      }
-
-      const data = await response.json();
-
+      // Guardar datos en localStorage
       localStorage.setItem("authToken", data.token);
+      localStorage.setItem("workerName", data.user.name);
+      localStorage.setItem("userId", data.user.id);
+
+      if (isDevMode()) {
+        console.log("✅ Login exitoso en modo desarrollo");
+      }
 
       router.push("/dashboard");
     } catch (err: any) {
@@ -73,7 +84,15 @@ export default function Login() {
         <div className="flex-grow flex items-center justify-center w-full">
           <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4">
             <h1 className="text-3xl font-bold mb-2 text-gray-900">Ingresar</h1>
-            <p className="text-gray-600 mb-6">Bienvenido a TeToca</p>
+            <p className="text-gray-600 mb-6">
+              Bienvenido a TeToca{" "}
+              {isDevMode() && (
+                <span className="text-orange-500 text-sm">
+                  {" "}
+                  (Modo Desarrollo)
+                </span>
+              )}
+            </p>
 
             {error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
@@ -160,9 +179,18 @@ export default function Login() {
                 disabled={loading}
                 className="w-full bg-secondary text-white py-2 px-4 rounded-lg hover:bg-secondary-hover focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 transition-colors"
               >
-                {loading ? "Iniciando sesión..." : "Sign in"}
+                {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </button>
             </form>
+
+            {isDevMode() && (
+              <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-orange-700 text-sm">
+                  <strong>Modo Desarrollo:</strong> Puedes usar cualquier
+                  usuario/contraseña
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
