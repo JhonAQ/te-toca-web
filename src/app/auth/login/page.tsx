@@ -91,7 +91,7 @@ export default function Login() {
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8075FF] focus:border-[#8075FF]"
                   placeholder="Ingresa tu nombre de usuario"
-                  style={{color: "#000", "::placeholder": {color: "#9ca3af"}}}
+                  style={{color: "#000"}}
                   required
                 />
               </div>
@@ -108,7 +108,7 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8075FF] focus:border-[#8075FF]"
                     placeholder="Ingresa tu contraseña"
-                    style={{color: "#000", "::placeholder": {color: "#9ca3af"}}}
+                    style={{color: "#000"}}
                     required
                   />
                   <button
