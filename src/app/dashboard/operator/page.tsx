@@ -8,6 +8,8 @@ import Header from "./components/Header";
 import CurrentTicketPanel from "./components/CurrentTicketPanel";
 import ActionButtons from "./components/ActionButtons";
 import Footer from "./components/Footer";
+import LiveClock from "./components/LiveClock";
+import UpcomingTickets from "./components/UpcomingTickets";
 import SkippedTicketsModal from "./components/modals/SkippedTicketsModal";
 import QueueModal from "./components/modals/QueueModal";
 
@@ -195,7 +197,7 @@ export default function OperatorDashboard() {
     }
   };
 
-  const handleCancelTicket = async () => {
+  const handleCancelTicket = async (reason: string) => {
     if (!currentTicket) return;
 
     try {
@@ -208,7 +210,10 @@ export default function OperatorDashboard() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ ticketNumber: currentTicket }),
+            body: JSON.stringify({
+              ticketNumber: currentTicket,
+              reason: reason,
+            }),
           });
         },
         { success: true },
@@ -216,7 +221,7 @@ export default function OperatorDashboard() {
       );
 
       if (isDevMode()) {
-        console.log(`❌ Ticket cancelado ${currentTicket}`);
+        console.log(`❌ Ticket cancelado ${currentTicket} - Razón: ${reason}`);
         const nextIndex = (mockTicketIndex + 1) % mockTickets.length;
         setMockTicketIndex(nextIndex);
       }
@@ -261,6 +266,34 @@ export default function OperatorDashboard() {
     router.push("/dashboard/queue-selection");
   };
 
+  const handleSelectSkippedTicket = async (ticketNumber: string) => {
+    try {
+      await handleApiCall(
+        () => {
+          const token = localStorage.getItem("authToken");
+          return fetch("/api/operator/select-skipped-ticket", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ ticketNumber }),
+          });
+        },
+        { success: true, ticket: { number: ticketNumber } },
+        500
+      );
+
+      setCurrentTicket(ticketNumber);
+
+      if (isDevMode()) {
+        console.log(`🔄 Ticket saltado seleccionado: ${ticketNumber}`);
+      }
+    } catch (error) {
+      console.error("Error al seleccionar ticket saltado:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-primary-dark flex items-center justify-center">
@@ -281,15 +314,28 @@ export default function OperatorDashboard() {
       />
 
       <main className="flex-1 flex">
-        <CurrentTicketPanel currentTicket={currentTicket} isPaused={isPaused} />
-        <ActionButtons
-          currentTicket={currentTicket}
-          handleCallCustomer={handleCallCustomer}
-          handleFinishAttention={handleFinishAttention}
-          handleSkipTurn={handleSkipTurn}
-          handleCancelTicket={handleCancelTicket}
-          setShowSkippedModal={setShowSkippedModal}
-        />
+        {/* Panel Principal */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex">
+            <CurrentTicketPanel currentTicket={currentTicket} isPaused={isPaused} />
+            <ActionButtons
+              currentTicket={currentTicket}
+              handleCallCustomer={handleCallCustomer}
+              handleFinishAttention={handleFinishAttention}
+              handleSkipTurn={handleSkipTurn}
+              handleCancelTicket={handleCancelTicket}
+              setShowSkippedModal={setShowSkippedModal}
+            />
+          </div>
+
+          {/* Barra inferior con información adicional */}
+          <div className="bg-white/5 backdrop-blur-sm border-t border-white/10 p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <LiveClock />
+              <UpcomingTickets />
+            </div>
+          </div>
+        </div>
       </main>
 
       <Footer
@@ -302,6 +348,7 @@ export default function OperatorDashboard() {
       <SkippedTicketsModal
         show={showSkippedModal}
         onClose={() => setShowSkippedModal(false)}
+        onSelectTicket={handleSelectSkippedTicket}
       />
 
       <QueueModal
