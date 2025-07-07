@@ -11,34 +11,39 @@ import CancelTicketModal from "./modals/CancelTicketModal";
 
 interface ActionButtonsProps {
   currentTicket: string | null;
+  customerName: string | null;
   handleCallCustomer: () => void;
   handleFinishAttention: () => void;
   handleSkipTurn: () => void;
   handleCancelTicket: (reason: string) => void;
   setShowSkippedModal: (show: boolean) => void;
+  isPaused: boolean;
 }
 
 export default function ActionButtons({
   currentTicket,
+  customerName,
   handleCallCustomer,
   handleFinishAttention,
   handleSkipTurn,
   handleCancelTicket,
   setShowSkippedModal,
+  isPaused,
 }: ActionButtonsProps) {
   const [showCallModal, setShowCallModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const hasTicket = Boolean(currentTicket);
+  const isDisabled = isPaused || !hasTicket;
 
   const handleCallClick = () => {
-    if (hasTicket) {
+    if (hasTicket && !isPaused) {
       setShowCallModal(true);
       handleCallCustomer();
     }
   };
 
   const handleCancelClick = () => {
-    if (hasTicket) {
+    if (hasTicket && !isPaused) {
       setShowCancelModal(true);
     }
   };
@@ -54,9 +59,9 @@ export default function ActionButtons({
         {/* Botón Llamar */}
         <button
           onClick={handleCallClick}
-          disabled={!hasTicket}
+          disabled={isDisabled}
           className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
-            hasTicket
+            !isDisabled
               ? "btn-success hover:scale-105 active:scale-95"
               : "bg-gray-600 text-gray-400 cursor-not-allowed"
           }`}
@@ -68,9 +73,9 @@ export default function ActionButtons({
         {/* Botón Terminar Atención */}
         <button
           onClick={handleFinishAttention}
-          disabled={!hasTicket}
+          disabled={isDisabled}
           className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
-            hasTicket
+            !isDisabled
               ? "btn-info hover:scale-105 active:scale-95"
               : "bg-gray-600 text-gray-400 cursor-not-allowed"
           }`}
@@ -82,9 +87,9 @@ export default function ActionButtons({
         {/* Botón Saltar Turno */}
         <button
           onClick={handleSkipTurn}
-          disabled={!hasTicket}
+          disabled={isDisabled}
           className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
-            hasTicket
+            !isDisabled
               ? "btn-warning hover:scale-105 active:scale-95"
               : "bg-gray-600 text-gray-400 cursor-not-allowed"
           }`}
@@ -93,21 +98,26 @@ export default function ActionButtons({
           <span>Saltar Turno</span>
         </button>
 
-        {/* Botón Llamar Saltado */}
+        {/* Botón Retomar Saltado */}
         <button
           onClick={() => setShowSkippedModal(true)}
-          className="w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 btn-primary hover:scale-105 active:scale-95"
+          disabled={isPaused}
+          className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
+            !isPaused
+              ? "btn-primary hover:scale-105 active:scale-95"
+              : "bg-gray-600 text-gray-400 cursor-not-allowed"
+          }`}
         >
           <FiRefreshCw className="w-5 h-5" />
-          <span>Llamar Saltado</span>
+          <span>Retomar Saltado</span>
         </button>
 
         {/* Botón Cancelar */}
         <button
           onClick={handleCancelClick}
-          disabled={!hasTicket}
+          disabled={isDisabled}
           className={`w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
-            hasTicket
+            !isDisabled
               ? "btn-danger hover:scale-105 active:scale-95"
               : "bg-gray-600 text-gray-400 cursor-not-allowed"
           }`}
@@ -121,6 +131,7 @@ export default function ActionButtons({
         show={showCallModal}
         onClose={() => setShowCallModal(false)}
         ticketNumber={currentTicket}
+        customerName={customerName}
       />
 
       <CancelTicketModal

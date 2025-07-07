@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { FiPhone, FiClock, FiUser, FiX, FiRefreshCw } from "react-icons/fi";
+import {
+  FiClock,
+  FiUser,
+  FiX,
+  FiRefreshCw,
+  FiArrowRight,
+} from "react-icons/fi";
 
 interface SkippedTicket {
   id: string;
@@ -13,7 +19,7 @@ interface SkippedTicket {
 interface SkippedTicketsModalProps {
   show: boolean;
   onClose: () => void;
-  onSelectTicket?: (ticketNumber: string) => void;
+  onSelectTicket?: (ticketNumber: string, customerName: string) => void;
 }
 
 export default function SkippedTicketsModal({
@@ -51,9 +57,9 @@ export default function SkippedTicketsModal({
     },
   ];
 
-  const handleCallSkipped = (ticketNumber: string) => {
+  const handleRetakeTicket = (ticket: SkippedTicket) => {
     if (onSelectTicket) {
-      onSelectTicket(ticketNumber);
+      onSelectTicket(ticket.number, ticket.customerName);
     }
     onClose();
   };
@@ -80,7 +86,7 @@ export default function SkippedTicketsModal({
                   Tickets Saltados
                 </h2>
                 <p className="text-sm text-gray-600">
-                  {skippedTickets.length} tickets pendientes
+                  Selecciona un ticket para retomar la atención
                 </p>
               </div>
             </div>
@@ -164,12 +170,12 @@ export default function SkippedTicketsModal({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleCallSkipped(ticket.number);
+                            handleRetakeTicket(ticket);
                           }}
-                          className="btn-success flex items-center space-x-2 px-4 py-2"
+                          className="btn-primary flex items-center space-x-2 px-4 py-2"
                         >
-                          <FiPhone className="w-4 h-4" />
-                          <span>Llamar</span>
+                          <FiArrowRight className="w-4 h-4" />
+                          <span>Retomar</span>
                         </button>
                       </div>
                     </div>
@@ -190,11 +196,16 @@ export default function SkippedTicketsModal({
             </button>
             {selectedTicket && (
               <button
-                onClick={() => handleCallSkipped(selectedTicket)}
+                onClick={() => {
+                  const ticket = skippedTickets.find(
+                    (t) => t.number === selectedTicket
+                  );
+                  if (ticket) handleRetakeTicket(ticket);
+                }}
                 className="flex-1 btn-primary flex items-center justify-center space-x-2"
               >
-                <FiPhone className="w-4 h-4" />
-                <span>Llamar {selectedTicket}</span>
+                <FiArrowRight className="w-4 h-4" />
+                <span>Retomar {selectedTicket}</span>
               </button>
             )}
           </div>

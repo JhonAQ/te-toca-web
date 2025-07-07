@@ -9,13 +9,13 @@ import CurrentTicketPanel from "./components/CurrentTicketPanel";
 import ActionButtons from "./components/ActionButtons";
 import Footer from "./components/Footer";
 import LiveClock from "./components/LiveClock";
-import UpcomingTickets from "./components/UpcomingTickets";
 import SkippedTicketsModal from "./components/modals/SkippedTicketsModal";
 import QueueModal from "./components/modals/QueueModal";
 
 export default function OperatorDashboard() {
   const router = useRouter();
   const [currentTicket, setCurrentTicket] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState<string | null>(null);
   const [queueCount, setQueueCount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [operatorName, setOperatorName] = useState("");
@@ -25,7 +25,13 @@ export default function OperatorDashboard() {
   const [loading, setLoading] = useState(true);
 
   // Datos mock para desarrollo
-  const mockTickets = ["AB03", "CD15", "EF22", "GH08", "IJ14"];
+  const mockTickets = [
+    { number: "AB03", customerName: "María González" },
+    { number: "CD15", customerName: "Pedro Ramírez" },
+    { number: "EF22", customerName: "Ana López" },
+    { number: "GH08", customerName: "Carlos Mendoza" },
+    { number: "IJ14", customerName: "Laura Herrera" },
+  ];
   const [mockTicketIndex, setMockTicketIndex] = useState(0);
 
   useEffect(() => {
@@ -70,11 +76,17 @@ export default function OperatorDashboard() {
             },
           });
         },
-        { ticket: { number: mockTickets[mockTicketIndex] } },
+        {
+          ticket: {
+            number: mockTickets[mockTicketIndex].number,
+            customerName: mockTickets[mockTicketIndex].customerName,
+          },
+        },
         300
       );
 
       setCurrentTicket(data.ticket?.number || null);
+      setCustomerName(data.ticket?.customerName || null);
     } catch (error) {
       console.error("Error al obtener siguiente ticket:", error);
     }
@@ -152,7 +164,6 @@ export default function OperatorDashboard() {
 
       if (isDevMode()) {
         console.log(`✅ Atención terminada para ${currentTicket}`);
-        // Simular siguiente ticket
         const nextIndex = (mockTicketIndex + 1) % mockTickets.length;
         setMockTicketIndex(nextIndex);
       }
@@ -266,7 +277,10 @@ export default function OperatorDashboard() {
     router.push("/dashboard/queue-selection");
   };
 
-  const handleSelectSkippedTicket = async (ticketNumber: string) => {
+  const handleSelectSkippedTicket = async (
+    ticketNumber: string,
+    customerName: string
+  ) => {
     try {
       await handleApiCall(
         () => {
@@ -280,11 +294,12 @@ export default function OperatorDashboard() {
             body: JSON.stringify({ ticketNumber }),
           });
         },
-        { success: true, ticket: { number: ticketNumber } },
+        { success: true, ticket: { number: ticketNumber, customerName } },
         500
       );
 
       setCurrentTicket(ticketNumber);
+      setCustomerName(customerName);
 
       if (isDevMode()) {
         console.log(`🔄 Ticket saltado seleccionado: ${ticketNumber}`);
@@ -306,47 +321,76 @@ export default function OperatorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-primary-dark flex flex-col font-sans">
+    <div className="h-screen bg-primary-dark flex flex-col font-sans overflow-hidden relative">
       <Header
         operatorName={operatorName}
         selectedQueueName={selectedQueueName}
         onBackToQueues={handleBackToQueues}
       />
 
-      <main className="flex-1 flex">
-        {/* Panel Principal */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 flex">
-            <CurrentTicketPanel
-              currentTicket={currentTicket}
-              isPaused={isPaused}
-            />
-            <ActionButtons
-              currentTicket={currentTicket}
-              handleCallCustomer={handleCallCustomer}
-              handleFinishAttention={handleFinishAttention}
-              handleSkipTurn={handleSkipTurn}
-              handleCancelTicket={handleCancelTicket}
-              setShowSkippedModal={setShowSkippedModal}
-            />
+      {/* Contenido principal */}
+      <main
+        className={`flex-1 flex min-h-0 transition-all duration-300 ${
+          isPaused ? "blur-sm" : ""
+        }`}
+      >
+        {/* Panel central - Ticket actual */}
+        <div className="flex-1 flex relative">
+          {/* Reloj flotante */}
+          <div className="absolute top-6 right-6 z-10">
+            <LiveClock />
           </div>
 
-          {/* Barra inferior con información adicional */}
-          <div className="bg-white/5 backdrop-blur-sm border-t border-white/10 p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <LiveClock />
-              <UpcomingTickets />
-            </div>
-          </div>
+          <CurrentTicketPanel
+            currentTicket={currentTicket}
+            customerName={customerName}
+            isPaused={isPaused}
+          />
+          <ActionButtons
+            currentTicket={currentTicket}
+            customerName={customerName}
+            handleCallCustomer={handleCallCustomer}
+            handleFinishAttention={handleFinishAttention}
+            handleSkipTurn={handleSkipTurn}
+            handleCancelTicket={handleCancelTicket}
+            setShowSkippedModal={setShowSkippedModal}
+            isPaused={isPaused}
+          />
         </div>
       </main>
 
-      <Footer
-        isPaused={isPaused}
-        queueCount={queueCount}
-        handlePauseToggle={handlePauseToggle}
-        setShowQueueModal={setShowQueueModal}
-      />
+      <div
+        className={`transition-all duration-300 ${isPaused ? "blur-sm" : ""}`}
+      >
+        <Footer
+          isPaused={isPaused}
+          queueCount={queueCount}
+          handlePauseToggle={handlePauseToggle}
+          setShowQueueModal={setShowQueueModal}
+        />
+      </div>
+
+      {/* Overlay de pausa */}
+      {isPaused && (
+        <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 text-center">
+            <div className="text-6xl text-orange-400 mb-4">⏸️</div>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Atención Pausada
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Presiona el botón de reanudar cuando estés listo
+            </p>
+            <button
+              onClick={handlePauseToggle}
+              className="btn-primary flex items-center space-x-2 mx-auto"
+            >
+              <span>▶️</span>
+              <span>Reanudar Atención</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <SkippedTicketsModal
         show={showSkippedModal}
@@ -360,7 +404,7 @@ export default function OperatorDashboard() {
       />
 
       {isDevMode() && (
-        <div className="fixed bottom-4 right-4 bg-orange-500 text-white px-3 py-2 rounded-lg text-sm">
+        <div className="fixed bottom-4 right-4 bg-orange-500 text-white px-3 py-2 rounded-lg text-sm z-30">
           🚀 Modo Desarrollo
         </div>
       )}

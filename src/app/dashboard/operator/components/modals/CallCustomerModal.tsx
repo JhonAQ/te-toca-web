@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { FiPhone, FiCopy, FiCheck, FiX } from "react-icons/fi";
+import { FiPhone, FiCopy, FiCheck, FiX, FiUser } from "react-icons/fi";
 import QRCodeModal from "./QRCodeModal";
 
 interface CallCustomerModalProps {
   show: boolean;
   onClose: () => void;
   ticketNumber: string | null;
+  customerName?: string | null;
   customerPhone?: string;
 }
 
@@ -13,6 +14,7 @@ export default function CallCustomerModal({
   show,
   onClose,
   ticketNumber,
+  customerName,
   customerPhone,
 }: CallCustomerModalProps) {
   const [copied, setCopied] = useState(false);
@@ -71,6 +73,21 @@ export default function CallCustomerModal({
                 Usa cualquiera de las opciones para contactar al cliente
               </p>
             </div>
+
+            {/* Información del cliente */}
+            {customerName && (
+              <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <FiUser className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-600">Cliente</p>
+                    <p className="text-lg font-bold text-blue-900">
+                      {customerName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Número de teléfono */}
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
