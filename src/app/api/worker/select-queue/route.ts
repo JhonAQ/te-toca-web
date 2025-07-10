@@ -1,52 +1,57 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from 'next/server'
+import { WorkerService } from '@/lib/services/worker.service'
+import { QueueService } from '@/lib/services/queue.service'
+import { withWorkerAuth } from '@/lib/middleware/auth'
+import { selectQueueSchema } from '@/lib/validations'
+import { 
+  successResponse, 
+  validationErrorResponse,
+  forbiddenResponse,
+  notFoundResponse,
+  internalErrorResponse 
+} from '@/lib/utils/response'
 
-export async function POST(request: NextRequest) {
+export const POST = withWorkerAuth(async (request: NextRequest, worker) => {
   try {
-    const authHeader = request.headers.get("Authorization");
+    const body = await request.json()
     
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: "Token de autorización requerido" },
-        { status: 401 }
-      );
+    // Validar datos de entrada
+    const validation = selectQueueSchema.safeParse(body)
+    if (!validation.success) {
+      const errors = validation.error.flatten().fieldErrors
+      return validationErrorResponse(errors)
     }
 
-    const { queueId } = await request.json();
+    const { queueId } = validation.data
 
-    if (!queueId) {
-      return NextResponse.json(
-        { error: "ID de cola requerido" },
-        { status: 400 }
-      );
+    // Verificar que la cola existe y pertenece al tenant del worker
+    const queue = await QueueService.findById(queueId)
+    if (!queue) {
+      return notFoundResponse('Cola no encontrada')
     }
 
-    // Aquí deberías configurar la URL de tu backend real
-    const backendUrl = process.env.API_URL || "https://api.tetoca.com";
-    
-    // Realizar la solicitud al backend
-    const response = await fetch(`${backendUrl}/api/worker/select-queue`, {
-      method: "POST",
-      headers: {
-        "Authorization": authHeader,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ queueId }),
-    });
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Error al seleccionar la cola" },
-        { status: response.status }
-      );
+    if (queue.tenantId !== worker.tenantId) {
+      return forbiddenResponse('No tienes permisos para acceder a esta cola')
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Seleccionar la cola para el worker
+    const success = await WorkerService.selectQueue(worker.id, queueId)
+    if (!success) {
+      return forbiddenResponse('No se pudo seleccionar la cola')
+    }
+
+    return successResponse({
+      success: true,
+      message: 'Cola seleccionada exitosamente',
+      queue: {
+        id: queue.id,
+        name: queue.name,
+        description: queue.description
+      }
+    })
+
   } catch (error) {
-    console.error("Error al seleccionar cola:", error);
-    return NextResponse.json(
-      { error: "Error en el servidor" },
-      { status: 500 }
-    );
+    console.error('Error al seleccionar cola:', error)
+    return internalErrorResponse('Error al seleccionar la cola')
   }
-}
+})

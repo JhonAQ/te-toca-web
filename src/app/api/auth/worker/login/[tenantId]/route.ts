@@ -1,43 +1,81 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from 'next/server'
+import { WorkerService } from '@/lib/services/worker.service'
+import { TenantService } from '@/lib/services/tenant.service'
+import { generateToken } from '@/lib/auth'
+import { workerLoginSchema, tenantParamSchema } from '@/lib/validations'
+import { 
+  successResponse, 
+  errorResponse, 
+  validationErrorResponse, 
+  unauthorizedResponse,
+  notFoundResponse,
+  internalErrorResponse 
+} from '@/lib/utils/response'
 
-// Esta función actuará como proxy para el backend real
 export async function POST(
   request: NextRequest,
   { params }: { params: { tenantId: string } }
 ) {
-  const { tenantId } = params;
-  
   try {
-    const body = await request.json();
-    
-    // Aquí deberías configurar la URL de tu backend real
-    const backendUrl = process.env.API_URL || "https://api.tetoca.com";
-    
-    // Realizar la solicitud al backend
-    const response = await fetch(`${backendUrl}/api/auth/worker/login/${tenantId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    // Si hay un error en la respuesta del backend
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Credenciales inválidas" },
-        { status: response.status }
-      );
+    // Validar parámetro de URL
+    const paramValidation = tenantParamSchema.safeParse(params)
+    if (!paramValidation.success) {
+      return errorResponse('ID de tenant inválido', 400)
     }
 
-    // Si todo va bien, devolvemos la respuesta del backend
-    const data = await response.json();
-    return NextResponse.json(data);
+    const { tenantId } = paramValidation.data
+
+    // Verificar que el tenant existe
+    const tenant = await TenantService.findById(tenantId)
+    if (!tenant) {
+      return notFoundResponse('Tenant no encontrado')
+    }
+
+    const body = await request.json()
+    
+    // Validar datos de entrada
+    const validation = workerLoginSchema.safeParse(body)
+    if (!validation.success) {
+      const errors = validation.error.flatten().fieldErrors
+      return validationErrorResponse(errors)
+    }
+
+    const { username, password } = validation.data
+
+    // Validar credenciales del worker
+    const worker = await WorkerService.validateCredentials(tenantId, username, password)
+    if (!worker) {
+      return unauthorizedResponse('Credenciales inválidas')
+    }
+
+    // Generar token JWT
+    const token = generateToken({
+      id: worker.id,
+      username: worker.username,
+      type: 'worker',
+      tenantId: worker.tenantId,
+      role: worker.role
+    })
+
+    // Preparar respuesta (sin contraseña)
+    const workerResponse = {
+      id: worker.id,
+      name: worker.name,
+      username: worker.username,
+      role: worker.role,
+      tenantId: worker.tenantId,
+      tenantName: tenant.name,
+      permissions: worker.permissions as string[],
+      isActive: worker.isActive
+    }
+
+    return successResponse({
+      token,
+      user: workerResponse
+    })
+
   } catch (error) {
-    console.error("Error en autenticación:", error);
-    return NextResponse.json(
-      { error: "Error en el servidor" },
-      { status: 500 }
-    );
+    console.error('Error en autenticación de worker:', error)
+    return internalErrorResponse('Error al iniciar sesión')
   }
 }

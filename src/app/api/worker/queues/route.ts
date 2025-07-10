@@ -1,42 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from 'next/server'
+import { WorkerService } from '@/lib/services/worker.service'
+import { withWorkerAuth } from '@/lib/middleware/auth'
+import { 
+  successResponse, 
+  internalErrorResponse,
+  notFoundResponse
+} from '@/lib/utils/response'
 
-export async function GET(request: NextRequest) {
+export const GET = withWorkerAuth(async (request: NextRequest, worker) => {
   try {
-    const authHeader = request.headers.get("Authorization");
+    // Obtener colas disponibles para el worker
+    const queues = await WorkerService.getAvailableQueues(worker.id)
     
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: "Token de autorización requerido" },
-        { status: 401 }
-      );
+    if (!queues) {
+      return notFoundResponse('Worker no encontrado')
     }
 
-    // Aquí deberías configurar la URL de tu backend real
-    const backendUrl = process.env.API_URL || "https://api.tetoca.com";
-    
-    // Realizar la solicitud al backend
-    const response = await fetch(`${backendUrl}/api/worker/queues`, {
-      method: "GET",
-      headers: {
-        "Authorization": authHeader,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Error al obtener las colas" },
-        { status: response.status }
-      );
+    // Calcular estadísticas
+    const stats = {
+      totalQueues: queues.length,
+      totalWaiting: queues.reduce((sum, queue) => sum + queue.waitingCount, 0),
+      averageWaitTime: queues.length > 0 
+        ? Math.round(queues.reduce((sum, queue) => sum + queue.averageWaitTime, 0) / queues.length)
+        : 0,
+      activeOperators: 5 // Este valor debería calcularse desde la base de datos
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    return successResponse({
+      queues: queues.map(queue => ({
+        id: queue.id,
+        name: queue.name,
+        description: queue.description,
+        waitingCount: queue.waitingCount,
+        averageWaitTime: queue.averageWaitTime,
+        isActive: queue.isActive,
+        priority: queue.priority,
+        category: queue.category,
+        tenantId: queue.tenantId,
+        createdAt: queue.createdAt.toISOString(),
+        updatedAt: queue.updatedAt.toISOString()
+      })),
+      stats
+    })
+
   } catch (error) {
-    console.error("Error al obtener colas:", error);
-    return NextResponse.json(
-      { error: "Error en el servidor" },
-      { status: 500 }
-    );
+    console.error('Error al obtener colas:', error)
+    return internalErrorResponse('Error al obtener las colas')
   }
-}
+})

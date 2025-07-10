@@ -137,32 +137,90 @@ async function main() {
   // Crear worker por defecto
   const hashedPassword = await bcrypt.hash('123456', 12)
   
-  await prisma.worker.upsert({
-    where: { tenantId_username: { tenantId: defaultTenant.id, username: 'admin' } },
-    update: {},
-    create: {
-      name: 'Juan Pérez',
-      username: 'admin',
-      password: hashedPassword,
-      role: 'operator',
-      tenantId: defaultTenant.id,
-      permissions: ['manage_queues', 'process_tickets']
-    }
-  })
+  // Crear más workers de prueba
+  await Promise.all([
+    prisma.worker.upsert({
+      where: { tenantId_username: { tenantId: defaultTenant.id, username: 'admin' } },
+      update: {},
+      create: {
+        name: 'Juan Pérez',
+        username: 'admin',
+        password: hashedPassword,
+        role: 'operator',
+        tenantId: defaultTenant.id,
+        permissions: ['manage_queues', 'process_tickets']
+      }
+    }),
+    prisma.worker.upsert({
+      where: { tenantId_username: { tenantId: defaultTenant.id, username: 'operator1' } },
+      update: {},
+      create: {
+        name: 'María González',
+        username: 'operator1',
+        password: hashedPassword,
+        role: 'operator',
+        tenantId: defaultTenant.id,
+        permissions: ['process_tickets']
+      }
+    }),
+    prisma.worker.upsert({
+      where: { tenantId_username: { tenantId: defaultTenant.id, username: 'supervisor' } },
+      update: {},
+      create: {
+        name: 'Carlos Mendoza',
+        username: 'supervisor',
+        password: hashedPassword,
+        role: 'supervisor',
+        tenantId: defaultTenant.id,
+        permissions: ['manage_queues', 'process_tickets', 'view_reports']
+      }
+    })
+  ])
 
-  // Crear usuario de prueba
-  await prisma.user.upsert({
-    where: { email: 'cliente@test.com' },
-    update: {},
-    create: {
-      name: 'Cliente de Prueba',
-      email: 'cliente@test.com',
-      password: hashedPassword,
-      phone: '+51 999 888 777'
-    }
-  })
+  // Crear más usuarios de prueba
+  await Promise.all([
+    prisma.user.upsert({
+      where: { email: 'cliente@test.com' },
+      update: {},
+      create: {
+        name: 'Cliente de Prueba',
+        email: 'cliente@test.com',
+        password: hashedPassword,
+        phone: '+51 999 888 777'
+      }
+    }),
+    prisma.user.upsert({
+      where: { email: 'ana.lopez@test.com' },
+      update: {},
+      create: {
+        name: 'Ana López',
+        email: 'ana.lopez@test.com',
+        password: hashedPassword,
+        phone: '+51 987 654 321'
+      }
+    }),
+    prisma.user.upsert({
+      where: { email: 'pedro.ramirez@test.com' },
+      update: {},
+      create: {
+        name: 'Pedro Ramírez',
+        email: 'pedro.ramirez@test.com',
+        password: hashedPassword,
+        phone: '+51 912 345 678'
+      }
+    })
+  ])
 
   console.log('✅ Datos de prueba creados correctamente')
+  console.log('👤 Usuarios de prueba creados:')
+  console.log('   📧 cliente@test.com / 123456')
+  console.log('   📧 ana.lopez@test.com / 123456')
+  console.log('   📧 pedro.ramirez@test.com / 123456')
+  console.log('👷 Workers de prueba creados:')
+  console.log('   🏢 Tenant: default')
+  console.log('   👤 admin / 123456 (Administrador)')
+  console.log('   👤 operator1 / 123456 (Operario)')
+  console.log('   👤 supervisor / 123456 (Supervisor)')
 }
 
 main()
