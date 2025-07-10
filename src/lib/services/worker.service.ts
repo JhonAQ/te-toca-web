@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { hashPassword, verifyPassword } from '@/lib/auth'
 import { Worker } from '@prisma/client'
+import { parseWorkerPermissions } from '@/lib/utils/json-helpers'
 
 export class WorkerService {
   static async findByCredentials(tenantId: string, username: string): Promise<Worker | null> {

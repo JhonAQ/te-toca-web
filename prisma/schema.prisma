@@ -12,7 +12,7 @@ model Tenant {
   id        String   @id @default(cuid())
   name      String
   isActive  Boolean  @default(true)
-  settings  Json?    @default("{}")
+  settings  String?  @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -55,7 +55,7 @@ model Company {
   isActive   Boolean  @default(true)
   tenantId   String
   categoryId String?
-  settings   Json?    @default("{}")
+  settings   String?  @default("{}")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -106,8 +106,8 @@ model User {
   password       String
   profilePicture String?
   isActive       Boolean  @default(true)
-  preferences    Json?    @default("{\"notifications\": true, \"language\": \"es\"}")
-  pushTokens     Json?    @default("[]") // Array de tokens de notificaciones push
+  preferences    String?  @default("{\"notifications\": true, \"language\": \"es\"}")
+  pushTokens     String?  @default("[]") // Array de tokens de notificaciones push como string JSON
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -126,7 +126,7 @@ model Worker {
   password       String
   role           String   @default("operator")
   tenantId       String
-  permissions    Json?    @default("[]") // Array de permisos
+  permissions    String?  @default("[]") // Array de permisos como string JSON
   isActive       Boolean  @default(true)
   currentQueueId String?
   isPaused       Boolean  @default(false)
@@ -193,7 +193,7 @@ model Notification {
   type      String   // ticket_called, ticket_ready, queue_update, general
   title     String
   message   String
-  data      Json?    @default("{}")
+  data      String?  @default("{}")
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 

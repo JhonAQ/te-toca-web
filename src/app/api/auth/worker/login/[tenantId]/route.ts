@@ -11,6 +11,7 @@ import {
   notFoundResponse,
   internalErrorResponse 
 } from '@/lib/utils/response'
+import { parseWorkerPermissions } from '@/lib/utils/json-helpers'
 
 export async function POST(
   request: NextRequest,
@@ -65,7 +66,7 @@ export async function POST(
       role: worker.role,
       tenantId: worker.tenantId,
       tenantName: tenant.name,
-      permissions: worker.permissions as string[],
+      permissions: parseWorkerPermissions(worker.permissions),
       isActive: worker.isActive
     }
 

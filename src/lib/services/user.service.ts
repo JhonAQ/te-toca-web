@@ -1,6 +1,11 @@
 import { db } from '@/lib/db'
 import { hashPassword, verifyPassword } from '@/lib/auth'
 import { User } from '@prisma/client'
+import { 
+  parseUserPreferences, 
+  parseUserPushTokens, 
+  stringifyJsonField 
+} from '@/lib/utils/json-helpers'
 
 export class UserService {
   static async findByEmail(email: string): Promise<User | null> {
@@ -56,12 +61,12 @@ export class UserService {
       select: { pushTokens: true }
     })
 
-    const currentTokens = (user?.pushTokens as string[]) || []
+    const currentTokens = parseUserPushTokens(user?.pushTokens)
     const newTokens = Array.from(new Set([...currentTokens, token]))
 
     await db.user.update({
       where: { id: userId },
-      data: { pushTokens: newTokens }
+      data: { pushTokens: stringifyJsonField(newTokens) }
     })
   }
 
