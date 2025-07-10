@@ -1,5 +1,5 @@
 export const isDevMode = () => {
-  return process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  return process.env.NEXT_PUBLIC_DEV_MODE === 'false';
 };
 
 export const mockApiResponse = <T>(data: T, delay: number = 500): Promise<T> => {

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { stringifyJsonField } from '../src/lib/utils/json-helpers'
 
 const prisma = new PrismaClient()
 
@@ -47,10 +48,10 @@ async function main() {
     create: {
       id: 'default',
       name: 'TeToca Demo',
-      settings: {
+      settings: stringifyJsonField({
         timezone: 'America/Lima',
         businessHours: { start: '08:00', end: '18:00' }
-      }
+      })
     }
   })
 
@@ -148,7 +149,7 @@ async function main() {
         password: hashedPassword,
         role: 'operator',
         tenantId: defaultTenant.id,
-        permissions: ['manage_queues', 'process_tickets']
+        permissions: stringifyJsonField(['manage_queues', 'process_tickets'])
       }
     }),
     prisma.worker.upsert({
@@ -160,7 +161,7 @@ async function main() {
         password: hashedPassword,
         role: 'operator',
         tenantId: defaultTenant.id,
-        permissions: ['process_tickets']
+        permissions: stringifyJsonField(['process_tickets'])
       }
     }),
     prisma.worker.upsert({
@@ -172,13 +173,13 @@ async function main() {
         password: hashedPassword,
         role: 'supervisor',
         tenantId: defaultTenant.id,
-        permissions: ['manage_queues', 'process_tickets', 'view_reports']
+        permissions: stringifyJsonField(['manage_queues', 'process_tickets', 'view_reports'])
       }
     })
   ])
 
   // Crear más usuarios de prueba
-  await Promise.all([
+  const users = await Promise.all([
     prisma.user.upsert({
       where: { email: 'cliente@test.com' },
       update: {},
@@ -211,6 +212,70 @@ async function main() {
     })
   ])
 
+  // Crear algunos tickets de ejemplo
+  console.log('🎫 Creando tickets de ejemplo...')
+  
+  const generateTicketNumber = () => {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const numbers = '0123456789'
+    
+    const letter1 = letters[Math.floor(Math.random() * letters.length)]
+    const letter2 = letters[Math.floor(Math.random() * letters.length)]
+    const number1 = numbers[Math.floor(Math.random() * numbers.length)]
+    const number2 = numbers[Math.floor(Math.random() * numbers.length)]
+    
+    return `${letter1}${letter2}${number1}${number2}`
+  }
+
+  // Crear tickets en diferentes estados
+  const sampleTickets = [
+    {
+      number: generateTicketNumber(),
+      queueId: queues[0].id, // Atención General
+      tenantId: defaultTenant.id,
+      userId: users[0].id,
+      customerName: users[0].name,
+      customerPhone: users[0].phone,
+      customerEmail: users[0].email,
+      status: 'waiting',
+      position: 1,
+      estimatedWaitTime: 12,
+      priority: 'normal'
+    },
+    {
+      number: generateTicketNumber(),
+      queueId: queues[0].id,
+      tenantId: defaultTenant.id,
+      userId: users[1].id,
+      customerName: users[1].name,
+      customerPhone: users[1].phone,
+      customerEmail: users[1].email,
+      status: 'waiting',
+      position: 2,
+      estimatedWaitTime: 24,
+      priority: 'normal'
+    },
+    {
+      number: generateTicketNumber(),
+      queueId: queues[1].id, // Soporte Técnico
+      tenantId: defaultTenant.id,
+      userId: users[2].id,
+      customerName: users[2].name,
+      customerPhone: users[2].phone,
+      customerEmail: users[2].email,
+      status: 'waiting',
+      position: 1,
+      estimatedWaitTime: 25,
+      priority: 'priority'
+    }
+  ]
+
+  for (const ticketData of sampleTickets) {
+    await prisma.ticket.create({
+      data: ticketData
+    })
+  }
+
   console.log('✅ Datos de prueba creados correctamente')
   console.log('👤 Usuarios de prueba creados:')
   console.log('   📧 cliente@test.com / 123456')
@@ -221,6 +286,7 @@ async function main() {
   console.log('   👤 admin / 123456 (Administrador)')
   console.log('   👤 operator1 / 123456 (Operario)')
   console.log('   👤 supervisor / 123456 (Supervisor)')
+  console.log('🎫 Tickets de ejemplo creados: 3')
 }
 
 main()
