@@ -62,10 +62,35 @@ export function parseUserPushTokens(tokensString: string | null): string[] {
   return parseJsonField(tokensString, [])
 }
 
-export function parseWorkerPermissions(permissionsString: string | null): string[] {
-  return parseJsonField(permissionsString, [])
-}
-
 export function parseNotificationData(dataString: string | null): NotificationData {
   return parseJsonField(dataString, {})
+}
+
+// Función unificada para permisos de worker
+export function parseWorkerPermissions(permissionsString: string | null): any {
+  if (!permissionsString) {
+    return {
+      queues: [],
+      actions: []
+    }
+  }
+  
+  try {
+    return JSON.parse(permissionsString)
+  } catch (error) {
+    console.warn('Error parsing worker permissions:', error)
+    return {
+      queues: [],
+      actions: []
+    }
+  }
+}
+
+export function stringifyWorkerPermissions(permissions: any): string {
+  try {
+    return JSON.stringify(permissions)
+  } catch (error) {
+    console.warn('Error stringifying worker permissions:', error)
+    return '{}'
+  }
 }

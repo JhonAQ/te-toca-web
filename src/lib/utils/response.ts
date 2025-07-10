@@ -1,48 +1,46 @@
 import { NextResponse } from 'next/server'
 
-export function successResponse<T>(data: T, status = 200) {
+export function successResponse(data: any, status: number = 200) {
   return NextResponse.json(data, { status })
 }
 
-export function errorResponse(message: string, status = 400, code?: string) {
+export function errorResponse(message: string, status: number = 400) {
   return NextResponse.json(
     {
       error: message,
-      code,
       timestamp: new Date().toISOString()
     },
     { status }
   )
 }
 
-export function validationErrorResponse(errors: Record<string, string[]>) {
+export function validationErrorResponse(errors: Record<string, string[]>, status: number = 400) {
   return NextResponse.json(
     {
-      error: 'Datos inválidos. Por favor revisa la información',
-      code: 'VALIDATION_ERROR',
-      details: errors,
+      error: 'Datos de entrada inválidos',
+      errors,
       timestamp: new Date().toISOString()
     },
-    { status: 422 }
+    { status }
   )
 }
 
-export function unauthorizedResponse(message = 'Token de autorización requerido') {
-  return errorResponse(message, 401, 'UNAUTHORIZED')
+export function unauthorizedResponse(message: string = 'No autorizado') {
+  return errorResponse(message, 401)
 }
 
-export function forbiddenResponse(message = 'No tienes permisos para realizar esta acción') {
-  return errorResponse(message, 403, 'FORBIDDEN')
+export function forbiddenResponse(message: string = 'Acceso denegado') {
+  return errorResponse(message, 403)
 }
 
-export function notFoundResponse(message = 'Recurso no encontrado') {
-  return errorResponse(message, 404, 'NOT_FOUND')
+export function notFoundResponse(message: string = 'Recurso no encontrado') {
+  return errorResponse(message, 404)
 }
 
-export function conflictResponse(message = 'El recurso ya existe') {
-  return errorResponse(message, 409, 'CONFLICT')
+export function conflictResponse(message: string = 'Conflicto de recursos') {
+  return errorResponse(message, 409)
 }
 
-export function internalErrorResponse(message = 'Error interno del servidor') {
-  return errorResponse(message, 500, 'INTERNAL_ERROR')
+export function internalErrorResponse(message: string = 'Error interno del servidor') {
+  return errorResponse(message, 500)
 }
