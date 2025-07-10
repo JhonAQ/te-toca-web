@@ -1,494 +1,438 @@
 import { db } from '@/lib/db'
-import { generateTicketNumber, calculateEstimatedWaitTime } from '@/lib/utils/ticket'
-import { QueueService } from './queue.service'
-import { Ticket } from '@prisma/client'
+import { Ticket, SkippedTicket, UpcomingTicket, TicketStatus } from '@/lib/types/ticket.types'
 
 export class TicketService {
-  static async createTicket(data: {
-    queueId: string
-    userId: string
-    serviceType?: string
-    priority?: 'normal' | 'priority'
-    notes?: string
-  }) {
-    // Verificar que el usuario no tenga un ticket activo en esta cola
-    const existingTicket = await db.ticket.findFirst({
-      where: {
-        queueId: data.queueId,
-        userId: data.userId,
-        status: { in: ['waiting', 'called', 'paused'] }
-      }
-    })
-
-    if (existingTicket) {
-      throw new Error('Ya tienes un ticket activo en esta cola')
+  // Mock data para desarrollo
+  private static mockTickets: Ticket[] = [
+    {
+      id: '1',
+      number: 'AB03',
+      queueId: '1',
+      tenantId: 'default',
+      customerName: 'María González',
+      customerPhone: '+51 943 123 567',
+      customerEmail: 'maria@example.com',
+      serviceType: 'Consulta General',
+      priority: 'normal',
+      status: 'waiting',
+      position: 1,
+      estimatedWaitTime: 12,
+      notes: '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: '2',
+      number: 'CD15',
+      queueId: '1',
+      tenantId: 'default',
+      customerName: 'Pedro Ramírez',
+      customerPhone: '+51 987 654 321',
+      serviceType: 'Soporte Técnico',
+      priority: 'priority',
+      status: 'waiting',
+      position: 2,
+      estimatedWaitTime: 25,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: '3',
+      number: 'EF22',
+      queueId: '1',
+      tenantId: 'default',
+      customerName: 'Ana López',
+      serviceType: 'Reclamos',
+      priority: 'normal',
+      status: 'skipped',
+      position: 0,
+      estimatedWaitTime: 0,
+      reason: 'Cliente no respondió',
+      skippedAt: new Date(Date.now() - 30 * 60 * 1000), // 30 min ago
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
+  ]
 
-    // Obtener información de la cola y usuario
-    const [queue, user] = await Promise.all([
-      db.queue.findUnique({
-        where: { id: data.queueId },
-        include: { company: true, tenant: true }
-      }),
-      db.user.findUnique({
-        where: { id: data.userId }
+  static async getNextTicketInQueue(queueId: string, workerId: string): Promise<Ticket | null> {
+    console.log('🎫 Getting next ticket for queue:', queueId)
+
+    // En desarrollo, simular obtención del siguiente ticket
+    if (process.env.NODE_ENV === 'development') {
+      const waitingTickets = this.mockTickets.filter(
+        t => t.queueId === queueId && t.status === 'waiting'
+      ).sort((a, b) => {
+        // Prioridad primero, luego por posición
+        if (a.priority === 'priority' && b.priority === 'normal') return -1
+        if (a.priority === 'normal' && b.priority === 'priority') return 1
+        return a.position - b.position
       })
-    ])
 
-    if (!queue || !user) {
-      throw new Error('Cola o usuario no encontrado')
+      const nextTicket = waitingTickets[0] || null
+      console.log('✅ Next ticket found:', nextTicket?.number || 'none')
+      return nextTicket
     }
 
-    if (!queue.isActive) {
-      throw new Error('La cola no está disponible en este momento')
-    }
-
-    // Calcular posición en la cola
-    const waitingTickets = await db.ticket.count({
-      where: {
-        queueId: data.queueId,
-        status: 'waiting'
-      }
-    })
-
-    const position = waitingTickets + 1
-    const estimatedWaitTime = calculateEstimatedWaitTime(position, queue.averageWaitTime)
-
-    // Generar número único de ticket
-    let ticketNumber: string
-    let attempts = 0
-    do {
-      ticketNumber = generateTicketNumber()
-      const existing = await db.ticket.findUnique({
-        where: { number: ticketNumber }
-      })
-      if (!existing) break
-      attempts++
-    } while (attempts < 10)
-
-    if (attempts >= 10) {
-      throw new Error('No se pudo generar un número de ticket único')
-    }
-
-    // Crear el ticket
-    const ticket = await db.ticket.create({
-      data: {
-        number: ticketNumber,
-        queueId: data.queueId,
-        tenantId: queue.tenantId,
-        userId: data.userId,
-        customerName: user.name,
-        customerPhone: user.phone,
-        customerEmail: user.email,
-        serviceType: data.serviceType,
-        priority: data.priority || 'normal',
-        position,
-        estimatedWaitTime,
-        notes: data.notes
-      },
-      include: {
-        queue: {
-          include: { company: true }
-        }
-      }
-    })
-
-    return {
-      ticket: {
-        ...ticket,
-        enterpriseId: ticket.queue.company.id,
-        enterpriseName: ticket.queue.company.name,
-        queueName: ticket.queue.name
-      },
-      queueInfo: {
-        name: queue.name,
-        currentPosition: position,
-        totalWaiting: waitingTickets + 1,
-        estimatedWaitTime
-      }
-    }
-  }
-
-  static async findById(id: string, userId?: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { id },
-      include: {
-        queue: {
-          include: { company: true }
+    try {
+      const ticket = await db.ticket.findFirst({
+        where: {
+          queueId,
+          status: 'waiting'
         },
-        user: true
-      }
-    })
-
-    if (!ticket) return null
-
-    // Verificar permisos si se proporciona userId
-    if (userId && ticket.userId !== userId) {
-      throw new Error('No tienes permisos para ver este ticket')
-    }
-
-    // Obtener estado actual de la cola
-    const queueStatus = await QueueService.getQueueStatus(ticket.queueId)
-    const peopleAhead = await db.ticket.count({
-      where: {
-        queueId: ticket.queueId,
-        status: 'waiting',
-        createdAt: { lt: ticket.createdAt }
-      }
-    })
-
-    return {
-      ...ticket,
-      enterpriseId: ticket.queue.company.id,
-      enterpriseName: ticket.queue.company.name,
-      queueName: ticket.queue.name,
-      currentQueueStatus: {
-        currentTicketNumber: queueStatus?.currentTicketNumber || null,
-        peopleAhead,
-        estimatedWaitTime: peopleAhead * (ticket.queue.averageWaitTime || 5)
-      }
-    }
-  }
-
-  static async getNextTicketInQueue(queueId: string) {
-    return await db.ticket.findFirst({
-      where: {
-        queueId,
-        status: 'waiting'
-      },
-      orderBy: [
-        { priority: 'desc' }, // priority tickets first
-        { createdAt: 'asc' }   // then by creation time
-      ],
-      include: {
-        user: true,
-        queue: true
-      }
-    })
-  }
-
-  static async callTicket(ticketNumber: string, workerId: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { number: ticketNumber },
-      include: { queue: true }
-    })
-
-    if (!ticket) {
-      throw new Error('Ticket no encontrado')
-    }
-
-    if (ticket.status !== 'waiting') {
-      throw new Error('El ticket no está en estado de espera')
-    }
-
-    // Verificar que el worker tenga acceso a esta cola
-    const worker = await db.worker.findUnique({
-      where: { id: workerId }
-    })
-
-    if (!worker || worker.tenantId !== ticket.tenantId) {
-      throw new Error('No tienes permisos para procesar este ticket')
-    }
-
-    const updatedTicket = await db.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        status: 'called',
-        calledAt: new Date(),
-        processedById: workerId
-      }
-    })
-
-    return updatedTicket
-  }
-
-  static async finishAttention(ticketNumber: string, notes?: string, serviceRating?: number) {
-    const ticket = await db.ticket.findUnique({
-      where: { number: ticketNumber }
-    })
-
-    if (!ticket) {
-      throw new Error('Ticket no encontrado')
-    }
-
-    if (!['called', 'in_progress'].includes(ticket.status)) {
-      throw new Error('El ticket no está siendo atendido')
-    }
-
-    const now = new Date()
-    const serviceTime = ticket.calledAt ? 
-      Math.round((now.getTime() - ticket.calledAt.getTime()) / 60000) : 0
-
-    const updatedTicket = await db.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        status: 'completed',
-        completedAt: now,
-        serviceTime,
-        notes,
-        actualWaitTime: ticket.createdAt ? 
-          Math.round((now.getTime() - ticket.createdAt.getTime()) / 60000) : 0
-      }
-    })
-
-    // Actualizar estadísticas de la cola
-    await Promise.all([
-      QueueService.updateAverageWaitTime(ticket.queueId),
-      QueueService.incrementProcessedToday(ticket.queueId)
-    ])
-
-    return updatedTicket
-  }
-
-  static async skipTicket(ticketNumber: string, reason?: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { number: ticketNumber }
-    })
-
-    if (!ticket) {
-      throw new Error('Ticket no encontrado')
-    }
-
-    if (ticket.status !== 'waiting') {
-      throw new Error('Solo se pueden saltar tickets en espera')
-    }
-
-    return await db.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        status: 'skipped',
-        skippedAt: new Date(),
-        reason
-      }
-    })
-  }
-
-  static async cancelTicket(ticketId: string, reason: string, userId?: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { id: ticketId }
-    })
-
-    if (!ticket) {
-      throw new Error('Ticket no encontrado')
-    }
-
-    // Verificar permisos si es un usuario
-    if (userId && ticket.userId !== userId) {
-      throw new Error('No tienes permisos para cancelar este ticket')
-    }
-
-    if (!['waiting', 'called', 'paused'].includes(ticket.status)) {
-      throw new Error('El ticket no se puede cancelar en su estado actual')
-    }
-
-    return await db.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        status: 'cancelled',
-        cancelledAt: new Date(),
-        reason
-      }
-    })
-  }
-
-  static async pauseTicket(ticketId: string, reason?: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { id: ticketId }
-    })
-
-    if (!ticket) {
-      throw new Error('Ticket no encontrado')
-    }
-
-    if (!['waiting', 'called'].includes(ticket.status)) {
-      throw new Error('El ticket no se puede pausar en su estado actual')
-    }
-
-    return await db.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        status: 'paused',
-        pausedAt: new Date(),
-        reason
-      }
-    })
-  }
-
-  static async resumeTicket(ticketId: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { id: ticketId }
-    })
-
-    if (!ticket) {
-      throw new Error('Ticket no encontrado')
-    }
-
-    if (ticket.status !== 'paused') {
-      throw new Error('El ticket no está pausado')
-    }
-
-    // Recalcular posición en la cola
-    const waitingTickets = await db.ticket.count({
-      where: {
-        queueId: ticket.queueId,
-        status: 'waiting'
-      }
-    })
-
-    const newPosition = waitingTickets + 1
-    const queue = await db.queue.findUnique({
-      where: { id: ticket.queueId }
-    })
-
-    const estimatedWaitTime = newPosition * (queue?.averageWaitTime || 5)
-
-    return await db.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        status: 'waiting',
-        resumedAt: new Date(),
-        position: newPosition,
-        estimatedWaitTime,
-        reason: null
-      }
-    })
-  }
-
-  static async getSkippedTickets(queueId: string) {
-    return await db.ticket.findMany({
-      where: {
-        queueId,
-        status: 'skipped'
-      },
-      include: {
-        user: true
-      },
-      orderBy: { skippedAt: 'asc' }
-    })
-  }
-
-  static async selectSkippedTicket(ticketNumber: string, workerId: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { number: ticketNumber },
-      include: { queue: true }
-    })
-
-    if (!ticket) {
-      throw new Error('Ticket no encontrado')
-    }
-
-    if (ticket.status !== 'skipped') {
-      throw new Error('El ticket no está saltado')
-    }
-
-    // Verificar permisos del worker
-    const worker = await db.worker.findUnique({
-      where: { id: workerId }
-    })
-
-    if (!worker || worker.tenantId !== ticket.tenantId) {
-      throw new Error('No tienes permisos para procesar este ticket')
-    }
-
-    return await db.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        status: 'in_progress',
-        resumedAt: new Date(),
-        processedById: workerId
-      }
-    })
-  }
-
-  static async getUserTickets(userId: string, status?: string, page = 1, limit = 20) {
-    const where: any = { userId }
-    if (status) where.status = status
-
-    const [tickets, total] = await Promise.all([
-      db.ticket.findMany({
-        where,
+        orderBy: [
+          { priority: 'desc' }, // priority tickets first
+          { position: 'asc' }   // then by position
+        ],
         include: {
-          queue: {
-            include: { company: true }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit
-      }),
-      db.ticket.count({ where })
-    ])
+          user: true,
+          queue: true
+        }
+      })
 
-    const stats = await db.ticket.groupBy({
-      by: ['status'],
-      where: { userId },
-      _count: { status: true }
-    })
-
-    const statsObject = stats.reduce((acc, stat) => {
-      acc[stat.status] = stat._count.status
-      return acc
-    }, {} as Record<string, number>)
-
-    return {
-      tickets: tickets.map(ticket => ({
-        ...ticket,
-        enterpriseId: ticket.queue.company.id,
-        enterpriseName: ticket.queue.company.name,
-        queueName: ticket.queue.name
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      },
-      stats: {
-        active: (statsObject.waiting || 0) + (statsObject.called || 0) + (statsObject.paused || 0),
-        completed: statsObject.completed || 0,
-        cancelled: statsObject.cancelled || 0
-      }
+      return ticket
+    } catch (error) {
+      console.error('❌ Error getting next ticket:', error)
+      return null
     }
   }
 
-  static async getUserActiveTickets(userId: string) {
-    const tickets = await db.ticket.findMany({
-      where: {
-        userId,
-        status: { in: ['waiting', 'called', 'paused'] }
-      },
-      include: {
-        queue: {
-          include: { company: true }
+  static async callTicket(ticketId: string, workerId: string): Promise<Ticket | null> {
+    console.log('📞 Calling ticket:', ticketId, 'by worker:', workerId)
+
+    // En desarrollo, simular llamada
+    if (process.env.NODE_ENV === 'development') {
+      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
+      if (ticketIndex >= 0) {
+        this.mockTickets[ticketIndex] = {
+          ...this.mockTickets[ticketIndex],
+          status: 'called',
+          workerId,
+          calledAt: new Date(),
+          updatedAt: new Date()
         }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+        return this.mockTickets[ticketIndex]
+      }
+      return null
+    }
 
-    const enrichedTickets = await Promise.all(
-      tickets.map(async (ticket) => {
-        const queueStatus = await QueueService.getQueueStatus(ticket.queueId)
-        const peopleAhead = await db.ticket.count({
-          where: {
-            queueId: ticket.queueId,
-            status: 'waiting',
-            createdAt: { lt: ticket.createdAt }
-          }
-        })
-
-        return {
-          ...ticket,
-          enterpriseId: ticket.queue.company.id,
-          enterpriseName: ticket.queue.company.name,
-          queueName: ticket.queue.name,
-          currentQueueStatus: {
-            currentTicketNumber: queueStatus?.currentTicketNumber || null,
-            peopleAhead
-          }
+    try {
+      const ticket = await db.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: 'called',
+          workerId,
+          calledAt: new Date(),
+          updatedAt: new Date()
+        },
+        include: {
+          user: true,
+          queue: true
         }
       })
-    )
 
-    return { activeTickets: enrichedTickets }
+      // Enviar notificación al cliente (implementar según necesidades)
+      await this.sendNotificationToClient(ticket)
+
+      return ticket
+    } catch (error) {
+      console.error('❌ Error calling ticket:', error)
+      return null
+    }
+  }
+
+  static async completeTicket(ticketId: string, notes?: string, serviceRating?: number): Promise<Ticket | null> {
+    console.log('✅ Completing ticket:', ticketId)
+
+    // En desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
+      if (ticketIndex >= 0) {
+        const now = new Date()
+        const serviceTime = this.mockTickets[ticketIndex].calledAt 
+          ? Math.floor((now.getTime() - this.mockTickets[ticketIndex].calledAt!.getTime()) / 1000 / 60)
+          : 0
+
+        this.mockTickets[ticketIndex] = {
+          ...this.mockTickets[ticketIndex],
+          status: 'completed',
+          completedAt: now,
+          serviceTime,
+          notes: notes || '',
+          updatedAt: now
+        }
+        return this.mockTickets[ticketIndex]
+      }
+      return null
+    }
+
+    try {
+      const ticket = await db.ticket.findUnique({ where: { id: ticketId } })
+      if (!ticket) return null
+
+      const serviceTime = ticket.calledAt 
+        ? Math.floor((Date.now() - ticket.calledAt.getTime()) / 1000 / 60)
+        : 0
+
+      const updatedTicket = await db.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: 'completed',
+          completedAt: new Date(),
+          serviceTime,
+          notes: notes || ticket.notes,
+          updatedAt: new Date()
+        }
+      })
+
+      return updatedTicket
+    } catch (error) {
+      console.error('❌ Error completing ticket:', error)
+      return null
+    }
+  }
+
+  static async skipTicket(ticketId: string, reason?: string): Promise<Ticket | null> {
+    console.log('⏭️ Skipping ticket:', ticketId)
+
+    // En desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
+      if (ticketIndex >= 0) {
+        this.mockTickets[ticketIndex] = {
+          ...this.mockTickets[ticketIndex],
+          status: 'skipped',
+          skippedAt: new Date(),
+          reason: reason || 'Cliente no respondió',
+          updatedAt: new Date()
+        }
+        return this.mockTickets[ticketIndex]
+      }
+      return null
+    }
+
+    try {
+      const ticket = await db.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: 'skipped',
+          skippedAt: new Date(),
+          reason: reason || 'No especificado',
+          updatedAt: new Date()
+        }
+      })
+
+      return ticket
+    } catch (error) {
+      console.error('❌ Error skipping ticket:', error)
+      return null
+    }
+  }
+
+  static async cancelTicket(ticketId: string, reason: string): Promise<Ticket | null> {
+    console.log('❌ Cancelling ticket:', ticketId)
+
+    // En desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
+      if (ticketIndex >= 0) {
+        this.mockTickets[ticketIndex] = {
+          ...this.mockTickets[ticketIndex],
+          status: 'cancelled',
+          cancelledAt: new Date(),
+          reason,
+          updatedAt: new Date()
+        }
+        return this.mockTickets[ticketIndex]
+      }
+      return null
+    }
+
+    try {
+      const ticket = await db.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: 'cancelled',
+          cancelledAt: new Date(),
+          reason,
+          updatedAt: new Date()
+        }
+      })
+
+      return ticket
+    } catch (error) {
+      console.error('❌ Error cancelling ticket:', error)
+      return null
+    }
+  }
+
+  static async resumeSkippedTicket(ticketId: string): Promise<Ticket | null> {
+    console.log('🔄 Resuming skipped ticket:', ticketId)
+
+    // En desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
+      if (ticketIndex >= 0) {
+        this.mockTickets[ticketIndex] = {
+          ...this.mockTickets[ticketIndex],
+          status: 'in_progress',
+          resumedAt: new Date(),
+          updatedAt: new Date()
+        }
+        return this.mockTickets[ticketIndex]
+      }
+      return null
+    }
+
+    try {
+      const ticket = await db.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: 'in_progress',
+          resumedAt: new Date(),
+          updatedAt: new Date()
+        }
+      })
+
+      return ticket
+    } catch (error) {
+      console.error('❌ Error resuming ticket:', error)
+      return null
+    }
+  }
+
+  static async getSkippedTickets(queueId: string): Promise<SkippedTicket[]> {
+    console.log('📋 Getting skipped tickets for queue:', queueId)
+
+    // En desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      const skippedTickets = this.mockTickets
+        .filter(t => t.queueId === queueId && t.status === 'skipped')
+        .map(ticket => ({
+          id: ticket.id,
+          number: ticket.number,
+          customerName: ticket.customerName,
+          customerPhone: ticket.customerPhone,
+          waitTime: ticket.skippedAt 
+            ? Math.floor((Date.now() - ticket.skippedAt.getTime()) / 1000 / 60)
+            : 0,
+          reason: ticket.reason || 'No especificado',
+          skippedAt: ticket.skippedAt || new Date(),
+          priority: ticket.priority
+        }))
+
+      console.log('✅ Found', skippedTickets.length, 'skipped tickets')
+      return skippedTickets
+    }
+
+    try {
+      const tickets = await db.ticket.findMany({
+        where: {
+          queueId,
+          status: 'skipped'
+        },
+        orderBy: { skippedAt: 'asc' },
+        include: {
+          user: true
+        }
+      })
+
+      return tickets.map(ticket => ({
+        id: ticket.id,
+        number: ticket.number,
+        customerName: ticket.customerName,
+        customerPhone: ticket.customerPhone,
+        waitTime: ticket.skippedAt 
+          ? Math.floor((Date.now() - ticket.skippedAt.getTime()) / 1000 / 60)
+          : 0,
+        reason: ticket.reason || 'No especificado',
+        skippedAt: ticket.skippedAt || new Date(),
+        priority: ticket.priority as 'normal' | 'priority'
+      }))
+    } catch (error) {
+      console.error('❌ Error getting skipped tickets:', error)
+      return []
+    }
+  }
+
+  static async getUpcomingTickets(queueId: string, limit: number = 5): Promise<UpcomingTicket[]> {
+    console.log('👥 Getting upcoming tickets for queue:', queueId)
+
+    // En desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      const upcomingTickets = this.mockTickets
+        .filter(t => t.queueId === queueId && t.status === 'waiting')
+        .sort((a, b) => {
+          if (a.priority === 'priority' && b.priority === 'normal') return -1
+          if (a.priority === 'normal' && b.priority === 'priority') return 1
+          return a.position - b.position
+        })
+        .slice(0, limit)
+        .map(ticket => ({
+          number: ticket.number,
+          customerName: ticket.customerName,
+          estimatedTime: ticket.estimatedWaitTime,
+          priority: ticket.priority,
+          serviceType: ticket.serviceType
+        }))
+
+      return upcomingTickets
+    }
+
+    try {
+      const tickets = await db.ticket.findMany({
+        where: {
+          queueId,
+          status: 'waiting'
+        },
+        orderBy: [
+          { priority: 'desc' },
+          { position: 'asc' }
+        ],
+        take: limit,
+        include: {
+          user: true
+        }
+      })
+
+      return tickets.map(ticket => ({
+        number: ticket.number,
+        customerName: ticket.customerName,
+        estimatedTime: ticket.estimatedWaitTime,
+        priority: ticket.priority as 'normal' | 'priority',
+        serviceType: ticket.serviceType
+      }))
+    } catch (error) {
+      console.error('❌ Error getting upcoming tickets:', error)
+      return []
+    }
+  }
+
+  static async findByNumber(ticketNumber: string, queueId?: string): Promise<Ticket | null> {
+    // En desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      return this.mockTickets.find(t => 
+        t.number === ticketNumber && (!queueId || t.queueId === queueId)
+      ) || null
+    }
+
+    try {
+      const ticket = await db.ticket.findFirst({
+        where: {
+          number: ticketNumber,
+          ...(queueId && { queueId })
+        }
+      })
+
+      return ticket
+    } catch (error) {
+      console.error('❌ Error finding ticket by number:', error)
+      return null
+    }
+  }
+
+  private static async sendNotificationToClient(ticket: any): Promise<void> {
+    // Implementar envío de notificaciones push
+    console.log('📱 Sending notification to client for ticket:', ticket.number)
+    // TODO: Implementar con servicio de notificaciones
   }
 }

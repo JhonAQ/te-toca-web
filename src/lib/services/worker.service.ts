@@ -200,6 +200,76 @@ export class WorkerService {
     return true
   }
 
+  static async getActiveOperatorsCount(tenantId: string): Promise<number> {
+    // En desarrollo, devolver número mock
+    if (process.env.NODE_ENV === 'development') {
+      return Math.floor(Math.random() * 10) + 3 // Entre 3 y 12 operarios
+    }
+
+    // En producción, contar operarios activos
+    try {
+      const count = await db.worker.count({
+        where: {
+          tenantId,
+          isActive: true,
+          isPaused: false,
+          currentQueueId: { not: null } // Solo los que están asignados a una cola
+        }
+      })
+      return count
+    } catch (error) {
+      console.error('Error counting active operators:', error)
+      return 0
+    }
+  }
+
+  static async getWorkerCurrentQueue(workerId: string) {
+    // En desarrollo, devolver cola mock si está asignada
+    if (process.env.NODE_ENV === 'development') {
+      return this.mockQueues[0] // Devolver primera cola como ejemplo
+    }
+
+    return await db.worker.findUnique({
+      where: { id: workerId },
+      select: {
+        currentQueue: {
+          include: {
+            company: true,
+            _count: {
+              select: {
+                tickets: {
+                  where: { status: 'waiting' }
+                }
+              }
+            }
+          }
+        }
+      }
+    }).then(result => result?.currentQueue || null)
+  }
+
+  static async unassignFromQueue(workerId: string): Promise<boolean> {
+    // En desarrollo, siempre exitoso
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 Mock: Unassigning worker from queue')
+      return true
+    }
+
+    try {
+      await db.worker.update({
+        where: { id: workerId },
+        data: { 
+          currentQueueId: null,
+          isPaused: false
+        }
+      })
+      return true
+    } catch (error) {
+      console.error('Error unassigning worker from queue:', error)
+      return false
+    }
+  }
+
   private static extractNameFromUsername(username: string): string {
     if (username.includes('@')) {
       const localPart = username.split('@')[0]
