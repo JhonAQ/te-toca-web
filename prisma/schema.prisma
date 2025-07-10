@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Tenants (Empresas)
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  isActive  Boolean  @default(true)
+  settings  Json?    @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  companies Company[]
+  queues    Queue[]
+  workers   Worker[]
+  tickets   Ticket[]
+
+  @@map("tenants")
+}
+
+// Categorías para empresas
+model Category {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  iconName        String
+  color           String    @default("#3B82F6")
+  isActive        Boolean   @default(true)
+  enterpriseCount Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relaciones
+  companies Company[]
+
+  @@map("categories")
+}
+
+// Empresas/Instituciones
+model Company {
+  id         String   @id @default(cuid())
+  name       String
+  shortName  String?
+  type       String   @default("empresa")
+  logo       String?
+  address    String?
+  schedule   String?
+  phone      String?
+  isActive   Boolean  @default(true)
+  tenantId   String
+  categoryId String?
+  settings   Json?    @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relaciones
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id])
+  queues   Queue[]
+
+  @@index([tenantId])
+  @@index([categoryId])
+  @@map("companies")
+}
+
+// Colas
+model Queue {
+  id                   String   @id @default(cuid())
+  name                 String
+  description          String?
+  icon                 String?
+  category             String?
+  priority             String   @default("medium") // low, medium, high
+  isActive             Boolean  @default(true)
+  averageWaitTime      Int      @default(0) // en minutos
+  totalProcessedToday  Int      @default(0)
+  tenantId             String
+  companyId            String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relaciones
+  tenant  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+  workers Worker[]  @relation("WorkerQueues")
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("queues")
+}
+
+// Usuarios/Clientes
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  phone          String?
+  password       String
+  profilePicture String?
+  isActive       Boolean  @default(true)
+  preferences    Json?    @default("{\"notifications\": true, \"language\": \"es\"}")
+  pushTokens     Json?    @default("[]") // Array de tokens de notificaciones push
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  tickets       Ticket[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+// Trabajadores/Operarios
+model Worker {
+  id             String   @id @default(cuid())
+  name           String
+  username       String
+  password       String
+  role           String   @default("operator")
+  tenantId       String
+  permissions    Json?    @default("[]") // Array de permisos
+  isActive       Boolean  @default(true)
+  currentQueueId String?
+  isPaused       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  currentQueue  Queue? @relation("WorkerQueues", fields: [currentQueueId], references: [id])
+  processedTickets Ticket[] @relation("ProcessedTickets")
+
+  @@unique([tenantId, username])
+  @@index([tenantId])
+  @@map("workers")
+}
+
+// Tickets
+model Ticket {
+  id                String    @id @default(cuid())
+  number            String    @unique
+  queueId           String
+  tenantId          String
+  userId            String
+  processedById     String?   // ID del worker que procesó el ticket
+  customerName      String
+  customerPhone     String?
+  customerEmail     String?
+  serviceType       String?
+  priority          String    @default("normal") // normal, priority
+  status            String    @default("waiting") // waiting, called, in_progress, completed, cancelled, skipped, paused
+  position          Int       @default(0)
+  estimatedWaitTime Int       @default(0) // en minutos
+  actualWaitTime    Int       @default(0) // en minutos
+  serviceTime       Int       @default(0) // en minutos
+  notes             String?
+  reason            String?   // Para cancelaciones, saltos, etc.
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  calledAt          DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  skippedAt         DateTime?
+  pausedAt          DateTime?
+  resumedAt         DateTime?
+
+  // Relaciones
+  queue         Queue   @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  tenant        Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processedBy   Worker? @relation("ProcessedTickets", fields: [processedById], references: [id])
+
+  @@index([queueId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+// Notificaciones
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // ticket_called, ticket_ready, queue_update, general
+  title     String
+  message   String
+  data      Json?    @default("{}")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
