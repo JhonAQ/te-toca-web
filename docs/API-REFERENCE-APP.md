@@ -1,5 +1,4 @@
 # API Reference - TeToca App Móvil (Clientes)
-
 ## Descripción General
 
 Esta documentación describe todas las APIs REST necesarias para la aplicación móvil de clientes de TeToca. Los usuarios pueden registrarse, buscar empresas/instituciones, unirse a colas virtuales y gestionar sus tickets. El sistema es multitenant donde cada empresa tiene su propio workspace.

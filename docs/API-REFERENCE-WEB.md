@@ -14,6 +14,7 @@ Esta documentación describe todas las APIs REST necesarias para el frontend web
 ## Autenticación
 
 Todas las APIs (excepto login) requieren el header:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -31,9 +32,11 @@ Autentica un operario en una empresa específica.
 **Descripción**: Inicia sesión de un operario en el sistema
 
 **Parámetros de URL**:
+
 - `tenantId` (string): ID de la empresa/tenant
 
 **Request Body**:
+
 ```json
 {
   "username": "string",
@@ -42,6 +45,7 @@ Autentica un operario en una empresa específica.
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "token": "string",
@@ -59,6 +63,7 @@ Autentica un operario en una empresa específica.
 ```
 
 **Response Error (401)**:
+
 ```json
 {
   "error": "Credenciales inválidas"
@@ -66,6 +71,7 @@ Autentica un operario en una empresa específica.
 ```
 
 **Response Error (404)**:
+
 ```json
 {
   "error": "Tenant no encontrado"
@@ -85,11 +91,13 @@ Obtiene todas las colas disponibles para el operario autenticado.
 **Descripción**: Lista las colas asignadas al operario según su empresa
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "queues": [
@@ -117,6 +125,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Error (401)**:
+
 ```json
 {
   "error": "Token de autorización requerido"
@@ -132,11 +141,13 @@ Selecciona una cola específica para trabajar.
 **Descripción**: Asigna al operario a una cola específica
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Request Body**:
+
 ```json
 {
   "queueId": "string"
@@ -144,6 +155,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "success": true,
@@ -157,6 +169,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Error (403)**:
+
 ```json
 {
   "error": "No tienes permisos para acceder a esta cola"
@@ -164,6 +177,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Error (404)**:
+
 ```json
 {
   "error": "Cola no encontrada"
@@ -183,14 +197,17 @@ Obtiene el siguiente ticket en la cola del operario.
 **Descripción**: Obtiene el próximo ticket a atender en la cola asignada
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Query Parameters**:
+
 - `queueId` (string): ID de la cola
 
 **Response Success (200)**:
+
 ```json
 {
   "ticket": {
@@ -210,6 +227,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Success (204)** - No hay tickets:
+
 ```json
 {
   "ticket": null,
@@ -226,14 +244,17 @@ Obtiene el estado actual de la cola.
 **Descripción**: Obtiene estadísticas y estado de la cola asignada
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Query Parameters**:
+
 - `queueId` (string): ID de la cola
 
 **Response Success (200)**:
+
 ```json
 {
   "waitingCount": 0,
@@ -260,11 +281,13 @@ Llama a un cliente específico.
 **Descripción**: Marca un ticket como "llamado" y notifica al cliente
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Request Body**:
+
 ```json
 {
   "ticketNumber": "string"
@@ -272,6 +295,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "success": true,
@@ -294,11 +318,13 @@ Termina la atención de un ticket.
 **Descripción**: Marca un ticket como completado y libera al operario
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Request Body**:
+
 ```json
 {
   "ticketNumber": "string",
@@ -308,6 +334,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "success": true,
@@ -331,11 +358,13 @@ Salta el turno de un cliente.
 **Descripción**: Salta un ticket y lo marca como "saltado"
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Request Body**:
+
 ```json
 {
   "ticketNumber": "string",
@@ -344,6 +373,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "success": true,
@@ -367,11 +397,13 @@ Cancela un ticket permanentemente.
 **Descripción**: Cancela un ticket y lo marca como "cancelado"
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Request Body**:
+
 ```json
 {
   "ticketNumber": "string",
@@ -380,6 +412,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "success": true,
@@ -403,11 +436,13 @@ Pausa/reanuda la atención del operario.
 **Descripción**: Cambia el estado de pausa del operario
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Request Body**:
+
 ```json
 {
   "isPaused": true
@@ -415,6 +450,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "success": true,
@@ -432,11 +468,13 @@ Selecciona un ticket previamente saltado.
 **Descripción**: Retoma un ticket que fue saltado anteriormente
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Request Body**:
+
 ```json
 {
   "ticketNumber": "string"
@@ -444,6 +482,7 @@ Authorization: Bearer <token>
 ```
 
 **Response Success (200)**:
+
 ```json
 {
   "success": true,
@@ -467,14 +506,17 @@ Obtiene la lista de tickets saltados.
 **Descripción**: Lista todos los tickets saltados en la cola actual
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Query Parameters**:
+
 - `queueId` (string): ID de la cola
 
 **Response Success (200)**:
+
 ```json
 {
   "skippedTickets": [
@@ -501,14 +543,17 @@ Obtiene detalles completos de la cola con tickets.
 **Descripción**: Obtiene información detallada de la cola y sus tickets
 
 **Headers**:
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Query Parameters**:
+
 - `queueId` (string): ID de la cola
 
 **Response Success (200)**:
+
 ```json
 {
   "queue": {
@@ -564,6 +609,7 @@ Authorization: Bearer <token>
 ### 5. Estructura de Datos
 
 #### Ticket
+
 ```json
 {
   "id": "string",
@@ -591,6 +637,7 @@ Authorization: Bearer <token>
 ```
 
 #### Queue
+
 ```json
 {
   "id": "string",
@@ -609,6 +656,7 @@ Authorization: Bearer <token>
 ```
 
 #### User (Operario)
+
 ```json
 {
   "id": "string",
@@ -627,6 +675,7 @@ Authorization: Bearer <token>
 ```
 
 #### Tenant
+
 ```json
 {
   "id": "string",
