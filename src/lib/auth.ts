@@ -78,7 +78,20 @@ export function requireWorkerAuth(request: NextRequest): WorkerPayload {
   if (user.type !== 'worker') {
     throw new Error('Acceso restringido a operarios')
   }
-  return user as WorkerPayload
+
+  // Validación adicional para workers
+  const workerPayload = user as WorkerPayload
+  if (!workerPayload.tenantId) {
+    throw new Error('Token de worker inválido - falta tenantId')
+  }
+
+  if (!workerPayload.role) {
+    throw new Error('Token de worker inválido - falta role')
+  }
+
+  console.log('🔐 Worker authenticated:', workerPayload.username, 'tenant:', workerPayload.tenantId, 'role:', workerPayload.role)
+  
+  return workerPayload
 }
 
 // Middleware para verificar que sea cliente
@@ -88,4 +101,27 @@ export function requireUserAuth(request: NextRequest): ClientPayload {
     throw new Error('Acceso restringido a clientes')
   }
   return user as ClientPayload
+}
+
+// Función para validar token específicamente
+export function validateWorkerToken(token: string): WorkerPayload | null {
+  try {
+    const payload = verifyToken(token)
+    if (!payload || payload.type !== 'worker') {
+      return null
+    }
+
+    const workerPayload = payload as WorkerPayload
+    
+    // Validaciones adicionales para workers
+    if (!workerPayload.tenantId || !workerPayload.role || !workerPayload.username) {
+      console.log('❌ Invalid worker token structure')
+      return null
+    }
+
+    return workerPayload
+  } catch (error) {
+    console.error('❌ Token validation failed:', error)
+    return null
+  }
 }

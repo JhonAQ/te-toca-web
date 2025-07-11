@@ -1,46 +1,82 @@
 import { NextResponse } from 'next/server'
 
-export function successResponse(data: any, status: number = 200) {
-  return NextResponse.json(data, { status })
-}
-
-export function errorResponse(message: string, status: number = 400) {
+export function successResponse(data: any, status = 200) {
   return NextResponse.json(
     {
-      error: message,
-      timestamp: new Date().toISOString()
+      success: true,
+      ...data
     },
     { status }
   )
 }
 
-export function validationErrorResponse(errors: Record<string, string[]>, status: number = 400) {
+export function errorResponse(message: string, status = 400) {
   return NextResponse.json(
     {
-      error: 'Datos de entrada inválidos',
-      errors,
-      timestamp: new Date().toISOString()
+      success: false,
+      message
     },
     { status }
+  )
+}
+
+export function validationErrorResponse(errors: Record<string, string[]>) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: 'Datos de entrada inválidos',
+      errors
+    },
+    { status: 400 }
   )
 }
 
 export function unauthorizedResponse(message: string = 'No autorizado') {
-  return errorResponse(message, 401)
+  return NextResponse.json(
+    {
+      success: false,
+      message
+    },
+    { status: 401 }
+  )
 }
 
-export function forbiddenResponse(message: string = 'Acceso denegado') {
-  return errorResponse(message, 403)
+export function forbiddenResponse(message: string = 'Acceso prohibido') {
+  return NextResponse.json(
+    {
+      success: false,
+      message
+    },
+    { status: 403 }
+  )
 }
 
 export function notFoundResponse(message: string = 'Recurso no encontrado') {
-  return errorResponse(message, 404)
+  return NextResponse.json(
+    {
+      success: false,
+      message
+    },
+    { status: 404 }
+  )
 }
 
-export function conflictResponse(message: string = 'Conflicto de recursos') {
-  return errorResponse(message, 409)
+export function conflictResponse(message: string) {
+  return NextResponse.json(
+    {
+      success: false,
+      message
+    },
+    { status: 409 }
+  )
 }
 
 export function internalErrorResponse(message: string = 'Error interno del servidor') {
-  return errorResponse(message, 500)
+  return NextResponse.json(
+    {
+      success: false,
+      message
+    },
+    { status: 500 }
+  )
 }

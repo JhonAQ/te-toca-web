@@ -1,22 +1,20 @@
 import Image from "next/image";
 import { FiLogOut, FiRefreshCw } from "react-icons/fi";
-import { useState } from "react";
-import { isDevMode } from "@/utils/devMode";
 
 interface HeaderProps {
   workerName: string;
   onLogout: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export default function Header({ workerName, onLogout }: HeaderProps) {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    // Simular refresh
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    window.location.reload();
-  };
+export default function Header({
+  workerName,
+  onLogout,
+  onRefresh,
+  isRefreshing = false,
+}: HeaderProps) {
+  const tenantName = localStorage.getItem("tenantName") || "Sistema";
 
   return (
     <header className="bg-primary shadow-sm px-6 py-4 flex justify-between items-center">
@@ -28,24 +26,24 @@ export default function Header({ workerName, onLogout }: HeaderProps) {
           height={70}
           priority
         />
-        {isDevMode() && (
-          <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
-            DEV
-          </span>
-        )}
+        <div className="text-white/80 text-sm">
+          <span>{tenantName}</span>
+        </div>
       </div>
 
       <div className="flex items-center space-x-4">
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="text-white hover:text-gray-300 transition-colors p-2 rounded-lg hover:bg-white/10"
-          title="Actualizar colas"
-        >
-          <FiRefreshCw
-            className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
-          />
-        </button>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="text-white hover:text-gray-300 transition-colors p-2 rounded-lg hover:bg-white/10 disabled:opacity-50"
+            title="Actualizar colas"
+          >
+            <FiRefreshCw
+              className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+          </button>
+        )}
 
         <div className="text-right">
           <p className="text-gray-300 text-sm">Bienvenido,</p>

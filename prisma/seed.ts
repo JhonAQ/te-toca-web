@@ -138,7 +138,7 @@ async function main() {
   // Crear worker por defecto
   const hashedPassword = await bcrypt.hash('123456', 12)
   
-  // Crear más workers de prueba
+  // Crear workers con permisos específicos de colas
   await Promise.all([
     prisma.worker.upsert({
       where: { tenantId_username: { tenantId: defaultTenant.id, username: 'admin' } },
@@ -149,7 +149,10 @@ async function main() {
         password: hashedPassword,
         role: 'operator',
         tenantId: defaultTenant.id,
-        permissions: stringifyJsonField(['manage_queues', 'process_tickets'])
+        permissions: stringifyJsonField({
+          queues: ['bn-atencion-general', 'bn-soporte-tecnico'], // Acceso a ambas colas
+          actions: ['manage_queues', 'process_tickets', 'skip_tickets', 'cancel_tickets']
+        })
       }
     }),
     prisma.worker.upsert({
@@ -161,7 +164,10 @@ async function main() {
         password: hashedPassword,
         role: 'operator',
         tenantId: defaultTenant.id,
-        permissions: stringifyJsonField(['process_tickets'])
+        permissions: stringifyJsonField({
+          queues: ['bn-atencion-general'], // Solo acceso a atención general
+          actions: ['process_tickets', 'skip_tickets']
+        })
       }
     }),
     prisma.worker.upsert({
@@ -173,7 +179,40 @@ async function main() {
         password: hashedPassword,
         role: 'supervisor',
         tenantId: defaultTenant.id,
-        permissions: stringifyJsonField(['manage_queues', 'process_tickets', 'view_reports'])
+        permissions: stringifyJsonField({
+          queues: ['bn-atencion-general', 'bn-soporte-tecnico', 'hn-emergencias'], // Acceso a todas
+          actions: ['manage_queues', 'process_tickets', 'skip_tickets', 'cancel_tickets', 'view_reports', 'manage_workers']
+        })
+      }
+    }),
+    prisma.worker.upsert({
+      where: { tenantId_username: { tenantId: defaultTenant.id, username: 'tech_support' } },
+      update: {},
+      create: {
+        name: 'Ana López',
+        username: 'tech_support',
+        password: hashedPassword,
+        role: 'operator',
+        tenantId: defaultTenant.id,
+        permissions: stringifyJsonField({
+          queues: ['bn-soporte-tecnico'], // Solo soporte técnico
+          actions: ['process_tickets', 'skip_tickets']
+        })
+      }
+    }),
+    prisma.worker.upsert({
+      where: { tenantId_username: { tenantId: defaultTenant.id, username: 'emergency' } },
+      update: {},
+      create: {
+        name: 'Pedro Ramírez',
+        username: 'emergency',
+        password: hashedPassword,
+        role: 'operator',
+        tenantId: defaultTenant.id,
+        permissions: stringifyJsonField({
+          queues: ['hn-emergencias'], // Solo emergencias
+          actions: ['process_tickets', 'skip_tickets', 'priority_handling']
+        })
       }
     })
   ])
@@ -283,9 +322,11 @@ async function main() {
   console.log('   📧 pedro.ramirez@test.com / 123456')
   console.log('👷 Workers de prueba creados:')
   console.log('   🏢 Tenant: default')
-  console.log('   👤 admin / 123456 (Administrador)')
-  console.log('   👤 operator1 / 123456 (Operario)')
-  console.log('   👤 supervisor / 123456 (Supervisor)')
+  console.log('   👤 admin / 123456 (Acceso: Atención General + Soporte Técnico)')
+  console.log('   👤 operator1 / 123456 (Acceso: Solo Atención General)')
+  console.log('   👤 supervisor / 123456 (Acceso: Todas las colas)')
+  console.log('   👤 tech_support / 123456 (Acceso: Solo Soporte Técnico)')
+  console.log('   👤 emergency / 123456 (Acceso: Solo Emergencias)')
   console.log('🎫 Tickets de ejemplo creados: 3')
 }
 

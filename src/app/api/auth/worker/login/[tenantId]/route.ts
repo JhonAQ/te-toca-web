@@ -18,50 +18,59 @@ export async function POST(
   { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    // Await params primero
     const resolvedParams = await params
-    console.log('🔄 Login attempt for tenant:', resolvedParams.tenantId)
+    console.log('🔄 Worker login attempt for tenant:', resolvedParams.tenantId)
 
     // Validar parámetro de URL
     const paramValidation = tenantParamSchema.safeParse(resolvedParams)
     if (!paramValidation.success) {
-      console.log('❌ Tenant ID validation failed:', paramValidation.error)
+      console.log('❌ Invalid tenant ID format')
       return errorResponse('ID de tenant inválido', 400)
     }
 
     const { tenantId } = paramValidation.data
-    console.log('✅ Tenant ID validated:', tenantId)
 
-    // Verificar que el tenant existe
+    // Verificar que el tenant existe y está activo
     const tenant = await TenantService.findById(tenantId)
     if (!tenant) {
-      console.log('❌ Tenant not found:', tenantId)
-      return notFoundResponse('Tenant no encontrado')
+      console.log('❌ Tenant not found or inactive:', tenantId)
+      return notFoundResponse('El sistema no está disponible')
     }
 
-    console.log('✅ Tenant found:', tenant.name)
+    if (!tenant.isActive) {
+      console.log('❌ Tenant is inactive:', tenantId)
+      return unauthorizedResponse('El sistema está temporalmente deshabilitado')
+    }
 
+    console.log('✅ Tenant validated:', tenant.name)
+
+    // Obtener y validar datos del request
     const body = await request.json()
-    console.log('📋 Request body received:', { username: body.username, passwordLength: body.password?.length })
+    console.log('📋 Login attempt for username:', body.username)
     
-    // Validar datos de entrada
     const validation = workerLoginSchema.safeParse(body)
     if (!validation.success) {
-      console.log('❌ Body validation failed:', validation.error)
+      console.log('❌ Request validation failed')
       const errors = validation.error.flatten().fieldErrors
       return validationErrorResponse(errors)
     }
 
     const { username, password } = validation.data
 
-    // Validar credenciales del worker
+    // Validar credenciales del worker REALES
     const worker = await WorkerService.validateCredentials(tenantId, username, password)
     if (!worker) {
-      console.log('❌ Worker credentials invalid')
-      return unauthorizedResponse('Credenciales inválidas')
+      console.log('❌ Invalid credentials for username:', username)
+      return unauthorizedResponse('Usuario o contraseña incorrectos')
     }
 
-    console.log('✅ Worker authenticated:', worker.name)
+    // Verificar que el worker está activo
+    if (!worker.isActive) {
+      console.log('❌ Worker account is inactive:', username)
+      return unauthorizedResponse('Tu cuenta está desactivada. Contacta al administrador.')
+    }
+
+    console.log('✅ Worker authenticated successfully:', worker.name)
 
     // Generar token JWT
     const token = generateToken({
@@ -72,7 +81,7 @@ export async function POST(
       role: worker.role
     })
 
-    // Preparar respuesta (sin contraseña)
+    // Preparar respuesta completa
     const workerResponse = {
       id: worker.id,
       name: worker.name,
@@ -81,18 +90,29 @@ export async function POST(
       tenantId: worker.tenantId,
       tenantName: tenant.name,
       permissions: parseWorkerPermissions(worker.permissions),
-      isActive: worker.isActive
+      isActive: worker.isActive,
+      currentQueueId: worker.currentQueueId || null
     }
 
-    console.log('✅ Login successful for worker:', worker.name)
+    console.log('✅ Login successful for worker:', worker.name, 'in tenant:', tenant.name)
 
     return successResponse({
       token,
-      user: workerResponse
+      user: workerResponse,
+      message: `Bienvenido ${worker.name}`
     })
 
   } catch (error) {
-    console.error('❌ Error en autenticación de worker:', error)
-    return internalErrorResponse('Error al iniciar sesión')
+    console.error('❌ Error during worker authentication:', error)
+    
+    // Log detallado del error para debugging
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      })
+    }
+    
+    return internalErrorResponse('Error interno del servidor. Intenta nuevamente.')
   }
 }

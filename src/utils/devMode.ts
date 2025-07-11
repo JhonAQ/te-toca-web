@@ -1,89 +1,63 @@
-export const isDevMode = () => {
-  return process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-};
+/**
+ * Utilidades para manejo de modo desarrollo y llamadas API
+ */
 
-export const getApiBaseUrl = () => {
-  // En desarrollo, usar HTTP, en producción HTTPS
-  if (isDevMode()) {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://api.tetoca.com';
-};
+export function isDevMode(): boolean {
+  return process.env.NODE_ENV === 'development';
+}
 
-export const getTenantId = () => {
-  return localStorage.getItem('tenantId') || process.env.DEFAULT_TENANT_ID || 'default';
-};
-
-export const mockApiResponse = <T>(data: T, delay: number = 500): Promise<T> => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(data), delay);
-  });
-};
-
-export const handleApiCall = async <T>(
+export async function handleApiCall<T>(
   apiCall: () => Promise<Response>,
-  mockData: T,
-  mockDelay: number = 500
-): Promise<T> => {
-  if (isDevMode()) {
-    console.log('🚀 Modo desarrollo: usando datos simulados');
-    return mockApiResponse(mockData, mockDelay);
-  }
-
+  mockData?: T,
+  delay: number = 0
+): Promise<T> {
   try {
+    console.log('📡 Making API call...');
     const response = await apiCall();
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+      console.log('❌ API call failed with status:', response.status);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    return await response.json();
+    
+    const data = await response.json();
+    
+    if (!data.success && data.success !== undefined) {
+      console.log('❌ API returned success: false');
+      throw new Error(data.message || 'Error en la respuesta de la API');
+    }
+    
+    console.log('✅ API call successful');
+    return data;
   } catch (error) {
-    console.error('Error en llamada API:', error);
+    console.error('❌ API call failed:', error);
+    
+    // Solo usar datos mock en desarrollo Y si se especifica explícitamente
+    if (isDevMode() && mockData !== undefined) {
+      console.log('🔄 Using fallback mock data in development mode');
+      
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      return mockData;
+    }
+    
+    // Re-lanzar el error para que el componente lo maneje
     throw error;
   }
-};
+}
 
-// Utilidades para llamadas API específicas del operador
-export const operatorApiCall = async <T>(
-  endpoint: string,
-  options: RequestInit = {},
-  mockData?: T
-): Promise<T> => {
-  const token = localStorage.getItem('authToken');
-  const tenantId = getTenantId();
-  const baseUrl = getApiBaseUrl();
+export function getMockDelay(): number {
+  return isDevMode() ? Math.random() * 1000 + 500 : 0;
+}
 
-  if (!token) {
-    throw new Error('Token de autenticación no encontrado');
+export function logDevMode(message: string, data?: any): void {
+  if (isDevMode()) {
+    console.log(`🚀 [DEV MODE] ${message}`, data || '');
   }
+}
 
-  const url = `${baseUrl}/api/tenants/${tenantId}/operator${endpoint}`;
-  
-  const defaultOptions: RequestInit = {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  if (isDevMode() && mockData) {
-    console.log(`🚀 Mock API call to: ${endpoint}`);
-    return mockApiResponse(mockData, 500);
-  }
-
-  const response = await fetch(url, defaultOptions);
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-  }
-
-  // Si es 204 No Content, retornamos un objeto vacío
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  return await response.json();
-};
+export function showDevWarning(): boolean {
+  return isDevMode();
+}
