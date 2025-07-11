@@ -201,12 +201,11 @@ export default function OperatorDashboard() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          console.log(
-            "✅ REAL queue status:",
-            data.waitingCount,
-            "people waiting"
-          );
+          console.log("✅ REAL queue status:", data.waitingCount, "people waiting");
+          
+          // IMPORTANTE: Actualizar contador en tiempo real
           setQueueCount(data.waitingCount || 0);
+          console.log("🔄 Queue count updated to:", data.waitingCount || 0);
         }
       } else {
         // Si la API real falla, usar fallback de desarrollo
@@ -226,6 +225,19 @@ export default function OperatorDashboard() {
       }
     }
   };
+
+  // Agregar useEffect para actualización automática del contador
+  useEffect(() => {
+    if (selectedQueueName) {
+      // Actualizar cada 30 segundos
+      const interval = setInterval(() => {
+        console.log("🔄 Auto-refreshing queue status...");
+        fetchQueueStatus();
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [selectedQueueName]);
 
   const handleCallCustomer = async () => {
     if (!currentTicket) return;

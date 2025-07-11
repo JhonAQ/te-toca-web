@@ -342,6 +342,73 @@ export class TicketService {
     }
   }
 
+  static async getWaitingTicketsInQueue(queueId: string): Promise<Ticket[]> {
+    console.log('📋 Getting REAL waiting tickets for queue:', queueId)
+
+    try {
+      const tickets = await db.ticket.findMany({
+        where: {
+          queueId,
+          status: 'waiting' // SOLO tickets en espera
+        },
+        orderBy: [
+          { priority: 'desc' }, // Priority tickets first
+          { position: 'asc' },  // Then by position
+          { createdAt: 'asc' }  // Finally by creation time
+        ],
+        include: {
+          user: true
+        }
+      })
+
+      console.log('🔍 Raw waiting tickets from DB:', tickets.length)
+      console.log('📊 Waiting tickets details:', tickets.map(t => ({
+        id: t.id,
+        number: t.number,
+        customer: t.customerName,
+        status: t.status,
+        priority: t.priority,
+        position: t.position,
+        createdAt: t.createdAt
+      })))
+
+      const formattedTickets = tickets.map(ticket => ({
+        id: ticket.id,
+        number: ticket.number,
+        queueId: ticket.queueId,
+        tenantId: ticket.tenantId,
+        userId: ticket.userId,
+        customerName: ticket.customerName,
+        customerPhone: ticket.customerPhone,
+        customerEmail: ticket.customerEmail,
+        serviceType: ticket.serviceType,
+        priority: ticket.priority as 'normal' | 'priority',
+        status: ticket.status as TicketStatus,
+        position: ticket.position,
+        estimatedWaitTime: ticket.estimatedWaitTime,
+        actualWaitTime: ticket.actualWaitTime,
+        serviceTime: ticket.serviceTime,
+        notes: ticket.notes,
+        reason: ticket.reason,
+        workerId: ticket.workerId,
+        createdAt: ticket.createdAt,
+        updatedAt: ticket.updatedAt,
+        calledAt: ticket.calledAt,
+        completedAt: ticket.completedAt,
+        cancelledAt: ticket.cancelledAt,
+        skippedAt: ticket.skippedAt,
+        pausedAt: ticket.pausedAt,
+        resumedAt: ticket.resumedAt
+      }))
+
+      console.log('✅ Found', formattedTickets.length, 'REAL waiting tickets')
+      return formattedTickets
+    } catch (error) {
+      console.error('❌ Error getting REAL waiting tickets:', error)
+      return []
+    }
+  }
+
   private static formatTicketResponse(ticket: any): Ticket {
     return {
       id: ticket.id,
