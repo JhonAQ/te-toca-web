@@ -89,7 +89,7 @@ async function main() {
     })
   ])
 
-  // Crear colas
+  // Crear colas ANTES de crear workers
   const queues = await Promise.all([
     prisma.queue.upsert({
       where: { id: 'bn-atencion-general' },
@@ -135,14 +135,23 @@ async function main() {
     })
   ])
 
+  console.log('✅ Queues created:', queues.map(q => `${q.name} (${q.id})`))
+
   // Crear worker por defecto
   const hashedPassword = await bcrypt.hash('123456', 12)
   
+  console.log('🔧 Creating workers with queue permissions...')
+  
   // Crear workers con permisos específicos de colas
-  await Promise.all([
+  const workers = await Promise.all([
     prisma.worker.upsert({
       where: { tenantId_username: { tenantId: defaultTenant.id, username: 'admin' } },
-      update: {},
+      update: {
+        permissions: stringifyJsonField({
+          queues: ['bn-atencion-general', 'bn-soporte-tecnico'], // IDs exactos de las colas
+          actions: ['manage_queues', 'process_tickets', 'skip_tickets', 'cancel_tickets']
+        })
+      },
       create: {
         name: 'Juan Pérez',
         username: 'admin',
@@ -150,14 +159,19 @@ async function main() {
         role: 'operator',
         tenantId: defaultTenant.id,
         permissions: stringifyJsonField({
-          queues: ['bn-atencion-general', 'bn-soporte-tecnico'], // Acceso a ambas colas
+          queues: ['bn-atencion-general', 'bn-soporte-tecnico'], // IDs exactos de las colas
           actions: ['manage_queues', 'process_tickets', 'skip_tickets', 'cancel_tickets']
         })
       }
     }),
     prisma.worker.upsert({
       where: { tenantId_username: { tenantId: defaultTenant.id, username: 'operator1' } },
-      update: {},
+      update: {
+        permissions: stringifyJsonField({
+          queues: ['bn-atencion-general'], // Solo acceso a atención general
+          actions: ['process_tickets', 'skip_tickets']
+        })
+      },
       create: {
         name: 'María González',
         username: 'operator1',
@@ -172,7 +186,12 @@ async function main() {
     }),
     prisma.worker.upsert({
       where: { tenantId_username: { tenantId: defaultTenant.id, username: 'supervisor' } },
-      update: {},
+      update: {
+        permissions: stringifyJsonField({
+          queues: ['bn-atencion-general', 'bn-soporte-tecnico', 'hn-emergencias'], // Acceso a todas
+          actions: ['manage_queues', 'process_tickets', 'skip_tickets', 'cancel_tickets', 'view_reports', 'manage_workers']
+        })
+      },
       create: {
         name: 'Carlos Mendoza',
         username: 'supervisor',
@@ -187,7 +206,12 @@ async function main() {
     }),
     prisma.worker.upsert({
       where: { tenantId_username: { tenantId: defaultTenant.id, username: 'tech_support' } },
-      update: {},
+      update: {
+        permissions: stringifyJsonField({
+          queues: ['bn-soporte-tecnico'], // Solo soporte técnico
+          actions: ['process_tickets', 'skip_tickets']
+        })
+      },
       create: {
         name: 'Ana López',
         username: 'tech_support',
@@ -202,7 +226,12 @@ async function main() {
     }),
     prisma.worker.upsert({
       where: { tenantId_username: { tenantId: defaultTenant.id, username: 'emergency' } },
-      update: {},
+      update: {
+        permissions: stringifyJsonField({
+          queues: ['hn-emergencias'], // Solo emergencias
+          actions: ['process_tickets', 'skip_tickets', 'priority_handling']
+        })
+      },
       create: {
         name: 'Pedro Ramírez',
         username: 'emergency',
@@ -216,6 +245,12 @@ async function main() {
       }
     })
   ])
+
+  console.log('✅ Workers created with permissions:')
+  for (const worker of workers) {
+    const permissions = JSON.parse(worker.permissions || '{}')
+    console.log(`   👤 ${worker.username}: ${permissions.queues?.join(', ') || 'NO QUEUES'}`)
+  }
 
   // Crear más usuarios de prueba
   const users = await Promise.all([

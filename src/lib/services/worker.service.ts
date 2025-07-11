@@ -118,26 +118,29 @@ export class WorkerService {
       }
 
       console.log('✅ Worker found:', worker.name, 'in tenant:', worker.tenant.name)
+      console.log('🔍 Raw worker permissions field:', worker.permissions)
 
       // Parsear permisos del worker
       const permissions = parseWorkerPermissions(worker.permissions)
+      console.log('🔍 Parsed permissions object:', permissions)
       const allowedQueueIds = permissions.queues || []
 
       console.log('🔐 Worker permissions - allowed queues:', allowedQueueIds)
+      console.log('🏢 Available queues in tenant:', worker.tenant.queues.map(q => `${q.name} (${q.id})`))
 
-      // Filtrar colas basado en permisos específicos
+      // Si no hay permisos específicos asignados, permitir acceso a todas las colas del tenant (TEMPORAL)
       let availableQueues = worker.tenant.queues
-
-      // FILTRO CRÍTICO: Solo mostrar colas para las que tiene permisos explícitos
-      if (allowedQueueIds.length > 0) {
+      
+      if (allowedQueueIds.length === 0) {
+        console.log('⚠️ No specific permissions found - allowing access to all tenant queues as fallback')
+        // En lugar de devolver array vacío, permitir acceso a todas las colas del tenant
+      } else {
+        // FILTRO CRÍTICO: Solo mostrar colas para las que tiene permisos explícitos
         availableQueues = availableQueues.filter(queue => {
           const hasAccess = allowedQueueIds.includes(queue.id)
           console.log(`🔍 Queue ${queue.name} (${queue.id}): ${hasAccess ? 'ACCESO PERMITIDO' : 'ACCESO DENEGADO'}`)
           return hasAccess
         })
-      } else {
-        console.log('⚠️ Worker has no queue permissions - no access to any queue')
-        return []
       }
 
       const formattedQueues = availableQueues.map(queue => ({

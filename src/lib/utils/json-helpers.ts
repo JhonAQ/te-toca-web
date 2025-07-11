@@ -46,7 +46,10 @@ export interface NotificationData {
 
 // Helpers específicos para campos comunes
 export function parseWorkerPermissions(permissionsString: string | null): any {
+  console.log('🔍 DEBUG: Raw permissions string:', permissionsString)
+  
   if (!permissionsString) {
+    console.log('⚠️ DEBUG: No permissions string found, returning empty permissions')
     return {
       queues: [],
       actions: []
@@ -54,9 +57,11 @@ export function parseWorkerPermissions(permissionsString: string | null): any {
   }
   
   try {
-    return JSON.parse(permissionsString);
+    const parsed = JSON.parse(permissionsString);
+    console.log('✅ DEBUG: Successfully parsed permissions:', parsed)
+    return parsed;
   } catch (error) {
-    console.warn('Error parsing worker permissions:', error);
+    console.warn('❌ DEBUG: Error parsing worker permissions:', error);
     return {
       queues: [],
       actions: []
