@@ -55,12 +55,57 @@ export default function OperatorDashboard() {
 
   const initializeWorkspace = async () => {
     try {
-      await fetchNextTicket();
-      await fetchQueueStatus();
+      await Promise.all([
+        fetchNextTicket(),
+        fetchQueueStatus(),
+        fetchQueueDetails()
+      ]);
     } catch (error) {
       console.error("Error al inicializar workspace:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchQueueDetails = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const selectedQueue = localStorage.getItem("selectedQueue");
+      
+      if (!token || !selectedQueue) {
+        router.push("/dashboard/queue-selection");
+        return;
+      }
+
+      console.log("🔍 Fetching queue details for:", selectedQueue);
+
+      const response = await fetch(`/api/operator/queue-details?queueId=${selectedQueue}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.clear();
+          router.push("/auth/login");
+          return;
+        }
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log("✅ Queue details loaded:", data.queue?.name);
+        // Actualizar estado con detalles reales de la cola
+        if (data.queue?.name) {
+          setSelectedQueueName(data.queue.name);
+          localStorage.setItem("selectedQueueName", data.queue.name);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error fetching queue details:", error);
     }
   };
 

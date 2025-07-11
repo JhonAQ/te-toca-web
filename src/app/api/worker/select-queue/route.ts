@@ -30,22 +30,31 @@ export const POST = withWorkerAuth(async (request: NextRequest, worker) => {
     console.log('✅ Validated queue selection for queueId:', queueId)
 
     // VERIFICACIÓN CRÍTICA: Validar que el worker tiene permisos para esta cola
+    console.log('🔍 Starting queue access validation...')
     const hasAccess = await WorkerService.validateQueueAccess(worker.id, queueId)
+    
     if (!hasAccess) {
       console.log('❌ ACCESS DENIED - Worker does not have permission for queue:', queueId)
-      return forbiddenResponse('No tienes permisos para acceder a esta cola')
+      
+      // Debug adicional: Obtener las colas disponibles para ver qué tiene acceso
+      const availableQueues = await WorkerService.getAvailableQueues(worker.id)
+      console.log('🔍 DEBUG - Available queues for this worker:', availableQueues.map(q => q.id))
+      
+      return forbiddenResponse('No tienes permisos para acceder a esta cola. Contacta a tu supervisor.')
     }
 
     console.log('🔐 ACCESS GRANTED - Worker has permission for queue:', queueId)
 
-    // Verificar que la cola existe y está activa
+    // Verificar que la cola existe usando el service
     const queue = await QueueService.findById(queueId)
     if (!queue) {
       console.log('❌ Queue not found:', queueId)
       return notFoundResponse('Cola no encontrada')
     }
 
-    // Verificar que la cola pertenece al tenant del worker
+    console.log('✅ Queue found:', queue.name)
+
+    // Verificar que la cola pertenece al tenant del worker (seguridad adicional)
     if (queue.tenantId !== worker.tenantId) {
       console.log('❌ SECURITY VIOLATION - Queue tenant mismatch. Queue tenant:', queue.tenantId, 'Worker tenant:', worker.tenantId)
       return forbiddenResponse('Acceso denegado por seguridad')
@@ -57,7 +66,7 @@ export const POST = withWorkerAuth(async (request: NextRequest, worker) => {
       return forbiddenResponse('La cola seleccionada no está disponible')
     }
 
-    console.log('🔍 Queue validation passed:', queue.name, 'for tenant:', queue.tenantId)
+    console.log('🔍 All validations passed for queue:', queue.name, 'in tenant:', queue.tenantId)
 
     // Seleccionar la cola para el worker
     const success = await WorkerService.selectQueue(worker.id, queueId)
@@ -88,7 +97,7 @@ export const POST = withWorkerAuth(async (request: NextRequest, worker) => {
       accessInfo: {
         permissionLevel: 'full',
         grantedAt: new Date().toISOString(),
-        validUntil: null // Could implement time-based access
+        validUntil: null
       }
     })
 

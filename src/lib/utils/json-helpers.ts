@@ -59,6 +59,18 @@ export function parseWorkerPermissions(permissionsString: string | null): any {
   try {
     const parsed = JSON.parse(permissionsString);
     console.log('✅ DEBUG: Successfully parsed permissions:', parsed)
+    
+    // Verificar estructura de permisos
+    if (!parsed.queues || !Array.isArray(parsed.queues)) {
+      console.log('⚠️ DEBUG: Invalid queues structure in permissions, setting empty array')
+      parsed.queues = [];
+    }
+    
+    if (!parsed.actions || !Array.isArray(parsed.actions)) {
+      console.log('⚠️ DEBUG: Invalid actions structure in permissions, setting empty array')
+      parsed.actions = [];
+    }
+    
     return parsed;
   } catch (error) {
     console.warn('❌ DEBUG: Error parsing worker permissions:', error);

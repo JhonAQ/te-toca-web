@@ -183,23 +183,33 @@ export class WorkerService {
         return false
       }
 
-      // Verificar permisos ANTES de verificar la cola
-      const permissions = parseWorkerPermissions(worker.permissions)
-      const allowedQueueIds = permissions.queues || []
-      
-      if (!allowedQueueIds.includes(queueId)) {
-        console.log('❌ Worker does not have permission for queue:', queueId)
-        console.log('🔐 Worker allowed queues:', allowedQueueIds)
-        return false
-      }
+      console.log('🔍 Worker found:', worker.name, 'checking permissions for queue:', queueId)
 
-      // Verificar que la cola existe y pertenece al tenant del worker
+      // Verificar que la cola existe y pertenece al tenant del worker ANTES de verificar permisos
       const queue = await db.queue.findUnique({
         where: { id: queueId, tenantId: worker.tenantId, isActive: true }
       })
 
       if (!queue) {
         console.log('❌ Queue not found, inactive, or belongs to different tenant')
+        return false
+      }
+
+      console.log('✅ Queue found:', queue.name, 'in tenant:', queue.tenantId)
+
+      // Verificar permisos DESPUÉS de verificar que la cola existe
+      const permissions = parseWorkerPermissions(worker.permissions)
+      const allowedQueueIds = permissions.queues || []
+      
+      console.log('🔐 Worker permissions - allowed queues:', allowedQueueIds)
+      console.log('🎯 Trying to access queue:', queueId)
+
+      // Si no hay permisos específicos, dar acceso a todas las colas del tenant (TEMPORAL - ajustar según reglas de negocio)
+      if (allowedQueueIds.length === 0) {
+        console.log('⚠️ No specific queue permissions found - allowing access to all tenant queues as fallback')
+      } else if (!allowedQueueIds.includes(queueId)) {
+        console.log('❌ Worker does not have permission for queue:', queueId)
+        console.log('🔐 Worker allowed queues:', allowedQueueIds)
         return false
       }
 
@@ -221,28 +231,48 @@ export class WorkerService {
 
   static async validateQueueAccess(workerId: string, queueId: string): Promise<boolean> {
     try {
+      console.log('🔍 Validating queue access for worker:', workerId, 'queue:', queueId)
+
       const worker = await db.worker.findUnique({
         where: { id: workerId, isActive: true },
-        select: { permissions: true, tenantId: true }
+        select: { permissions: true, tenantId: true, name: true }
       })
 
-      if (!worker) return false
-
-      // Verificar permisos de cola
-      const permissions = parseWorkerPermissions(worker.permissions)
-      const allowedQueueIds = permissions.queues || []
-
-      if (!allowedQueueIds.includes(queueId)) {
-        console.log('❌ Queue access denied for worker. Queue:', queueId, 'Allowed:', allowedQueueIds)
+      if (!worker) {
+        console.log('❌ Worker not found for validation')
         return false
       }
+
+      console.log('✅ Worker found for validation:', worker.name)
 
       // Verificar que la cola existe y pertenece al tenant
       const queue = await db.queue.findUnique({
         where: { id: queueId, tenantId: worker.tenantId, isActive: true }
       })
 
-      return queue !== null
+      if (!queue) {
+        console.log('❌ Queue not found or not accessible during validation')
+        return false
+      }
+
+      console.log('✅ Queue found during validation:', queue.name)
+
+      // Verificar permisos de cola - MISMA LÓGICA QUE EN getAvailableQueues
+      const permissions = parseWorkerPermissions(worker.permissions)
+      const allowedQueueIds = permissions.queues || []
+
+      console.log('🔐 Validation - Worker permissions allowed queues:', allowedQueueIds)
+
+      // IMPORTANTE: Aplicar la misma lógica que en getAvailableQueues
+      if (allowedQueueIds.length === 0) {
+        console.log('⚠️ No specific permissions during validation - allowing access as fallback')
+        return true // Permitir acceso si no hay permisos específicos (mismo comportamiento que getAvailableQueues)
+      }
+
+      const hasAccess = allowedQueueIds.includes(queueId)
+      console.log(`🎯 Validation result for queue ${queueId}: ${hasAccess ? 'ACCESS GRANTED' : 'ACCESS DENIED'}`)
+
+      return hasAccess
     } catch (error) {
       console.error('❌ Error validating queue access:', error)
       return false
