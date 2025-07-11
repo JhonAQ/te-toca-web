@@ -12,19 +12,24 @@ import {
 
 export const GET = withWorkerAuth(async (request: NextRequest, worker) => {
   try {
-    console.log('📋 Getting skipped tickets for worker:', worker.id)
+    console.log('📋 Getting REAL skipped tickets for worker:', worker.id)
 
     const { searchParams } = new URL(request.url)
     const queueId = searchParams.get('queueId')
+
+    console.log('🔍 Request params - queueId:', queueId)
 
     // Validar parámetros
     const validation = queueStatusQuerySchema.safeParse({ queueId })
     if (!validation.success) {
       const errors = validation.error.flatten().fieldErrors
+      console.log('❌ Validation failed:', errors)
       return validationErrorResponse(errors)
     }
 
     const { queueId: validatedQueueId } = validation.data
+
+    console.log('✅ Validated queueId:', validatedQueueId)
 
     // Verificar que el worker tiene acceso a esta cola
     const hasAccess = await WorkerService.validateQueueAccess(worker.id, validatedQueueId)
@@ -33,10 +38,18 @@ export const GET = withWorkerAuth(async (request: NextRequest, worker) => {
       return forbiddenResponse('No tienes acceso a esta cola')
     }
 
-    // Obtener tickets saltados de la cola
+    console.log('🔐 Access validated for queue:', validatedQueueId)
+
+    // Obtener tickets saltados de la cola REALES
     const skippedTickets = await TicketService.getSkippedTickets(validatedQueueId)
 
-    console.log('✅ Found', skippedTickets.length, 'skipped tickets')
+    console.log('✅ Found', skippedTickets.length, 'REAL skipped tickets')
+    console.log('📊 Skipped tickets details:', skippedTickets.map(t => ({ 
+      id: t.id, 
+      number: t.number, 
+      customer: t.customerName,
+      reason: t.reason 
+    })))
 
     return successResponse({
       skippedTickets: skippedTickets.map(ticket => ({
@@ -52,7 +65,7 @@ export const GET = withWorkerAuth(async (request: NextRequest, worker) => {
     })
 
   } catch (error) {
-    console.error('❌ Error getting skipped tickets:', error)
+    console.error('❌ Error getting REAL skipped tickets:', error)
     return internalErrorResponse('Error al obtener tickets saltados')
   }
 })

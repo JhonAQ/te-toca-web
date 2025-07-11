@@ -245,28 +245,7 @@ export class TicketService {
   }
 
   static async getSkippedTickets(queueId: string): Promise<SkippedTicket[]> {
-    console.log('📋 Getting skipped tickets for queue:', queueId)
-
-    // En desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      const skippedTickets = this.mockTickets
-        .filter(t => t.queueId === queueId && t.status === 'skipped')
-        .map(ticket => ({
-          id: ticket.id,
-          number: ticket.number,
-          customerName: ticket.customerName,
-          customerPhone: ticket.customerPhone,
-          waitTime: ticket.skippedAt 
-            ? Math.floor((Date.now() - ticket.skippedAt.getTime()) / 1000 / 60)
-            : 0,
-          reason: ticket.reason || 'No especificado',
-          skippedAt: ticket.skippedAt || new Date(),
-          priority: ticket.priority
-        }))
-
-      console.log('✅ Found', skippedTickets.length, 'skipped tickets')
-      return skippedTickets
-    }
+    console.log('📋 Getting REAL skipped tickets for queue:', queueId)
 
     try {
       const tickets = await db.ticket.findMany({
@@ -280,7 +259,16 @@ export class TicketService {
         }
       })
 
-      return tickets.map(ticket => ({
+      console.log('🔍 Raw skipped tickets from DB:', tickets.length)
+      console.log('📊 Tickets details:', tickets.map(t => ({
+        id: t.id,
+        number: t.number,
+        customer: t.customerName,
+        status: t.status,
+        skippedAt: t.skippedAt
+      })))
+
+      const formattedTickets = tickets.map(ticket => ({
         id: ticket.id,
         number: ticket.number,
         customerName: ticket.customerName,
@@ -292,8 +280,13 @@ export class TicketService {
         skippedAt: ticket.skippedAt || new Date(),
         priority: ticket.priority as 'normal' | 'priority'
       }))
+
+      console.log('✅ Found', formattedTickets.length, 'REAL skipped tickets')
+      console.log('📊 Formatted tickets:', formattedTickets)
+
+      return formattedTickets
     } catch (error) {
-      console.error('❌ Error getting skipped tickets:', error)
+      console.error('❌ Error getting REAL skipped tickets:', error)
       return []
     }
   }

@@ -483,21 +483,30 @@ export default function OperatorDashboard() {
         body: JSON.stringify({ ticketNumber }),
       });
 
+      console.log("📡 Select skipped ticket response status:", response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Select skipped ticket error:", errorText);
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-
+      console.log("📊 Select skipped ticket response:", data);
+      
       if (data.success) {
         console.log("✅ Skipped ticket selected successfully:", data.message);
-
+        
         // Actualizar ticket actual
         setCurrentTicket(data.ticket.number);
         setCustomerName(data.ticket.customerName);
-
+        
         // Cerrar modal
         setShowSkippedModal(false);
+
+        // IMPORTANTE: Actualizar estado de la cola
+        await fetchQueueStatus();
+        console.log("🔄 Queue status refreshed after selecting skipped ticket");
       } else {
         throw new Error(data.message || "Error al seleccionar ticket saltado");
       }

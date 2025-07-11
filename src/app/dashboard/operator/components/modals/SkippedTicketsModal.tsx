@@ -57,17 +57,19 @@ export default function SkippedTicketsModal({
         }
       );
 
+      console.log("📡 API Response status:", response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ API Error:", response.status, errorText);
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log("📊 Skipped tickets response:", data);
 
       if (data.success) {
-        console.log(
-          "✅ REAL skipped tickets loaded:",
-          data.skippedTickets.length
-        );
+        console.log("✅ REAL skipped tickets loaded:", data.skippedTickets?.length || 0);
         setSkippedTickets(data.skippedTickets || []);
       } else {
         throw new Error(data.message || "Error al obtener tickets saltados");
