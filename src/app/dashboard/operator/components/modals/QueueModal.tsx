@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { FiX, FiClock, FiUser, FiAlertTriangle, FiUsers, FiRefreshCw } from "react-icons/fi";
+import {
+  FiX,
+  FiClock,
+  FiUser,
+  FiAlertTriangle,
+  FiUsers,
+  FiRefreshCw,
+} from "react-icons/fi";
 
 interface QueueTicket {
   id: string;
@@ -7,8 +14,8 @@ interface QueueTicket {
   customerName: string;
   customerPhone?: string;
   serviceType?: string;
-  priority: 'normal' | 'priority';
-  status: 'waiting';
+  priority: "normal" | "priority";
+  status: "waiting";
   position: number;
   estimatedWaitTime: number;
   createdAt: string;
@@ -26,7 +33,7 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
   const [queueInfo, setQueueInfo] = useState({
     totalWaiting: 0,
     totalCalled: 0,
-    totalInProgress: 0
+    totalInProgress: 0,
   });
 
   useEffect(() => {
@@ -71,13 +78,18 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
       console.log("📊 Queue tickets response:", data);
 
       if (data.success) {
-        console.log("✅ REAL waiting tickets loaded:", data.tickets?.length || 0);
+        console.log(
+          "✅ REAL waiting tickets loaded:",
+          data.tickets?.length || 0
+        );
         setQueueTickets(data.tickets || []);
-        setQueueInfo(data.queueInfo || {
-          totalWaiting: 0,
-          totalCalled: 0,
-          totalInProgress: 0
-        });
+        setQueueInfo(
+          data.queueInfo || {
+            totalWaiting: 0,
+            totalCalled: 0,
+            totalInProgress: 0,
+          }
+        );
       } else {
         throw new Error(data.message || "Error al obtener tickets de la cola");
       }
@@ -93,10 +105,10 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
     }
   };
 
-  const getPriorityColor = (priority: 'normal' | 'priority') => {
-    return priority === 'priority'
-      ? 'text-red-600 bg-red-50 border-red-200'
-      : 'text-gray-600 bg-gray-50 border-gray-200';
+  const getPriorityColor = (priority: "normal" | "priority") => {
+    return priority === "priority"
+      ? "text-red-600 bg-red-50 border-red-200"
+      : "text-gray-600 bg-gray-50 border-gray-200";
   };
 
   const formatTime = (minutes: number) => {
@@ -116,12 +128,13 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Personas en Cola</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Personas en Cola
+            </h2>
             <p className="text-sm text-gray-500 mt-1">
-              {loading 
-                ? "Cargando..." 
-                : `${queueTickets.length} personas esperando ser atendidas`
-              }
+              {loading
+                ? "Cargando..."
+                : `${queueTickets.length} personas esperando ser atendidas`}
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -131,7 +144,9 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
               className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50"
               title="Actualizar"
             >
-              <FiRefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <FiRefreshCw
+                className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
+              />
             </button>
             <button
               onClick={onClose}
@@ -146,21 +161,28 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
         <div className="p-6 border-b border-gray-200 bg-gray-50">
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{queueInfo.totalWaiting}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {queueInfo.totalWaiting}
+              </div>
               <div className="text-sm text-gray-600">En Espera</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {queueTickets.filter(t => t.priority === 'priority').length}
+                {queueTickets.filter((t) => t.priority === "priority").length}
               </div>
               <div className="text-sm text-gray-600">Prioritarios</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {queueTickets.length > 0 
-                  ? Math.round(queueTickets.reduce((sum, t) => sum + t.estimatedWaitTime, 0) / queueTickets.length)
-                  : 0
-                } min
+                {queueTickets.length > 0
+                  ? Math.round(
+                      queueTickets.reduce(
+                        (sum, t) => sum + t.estimatedWaitTime,
+                        0
+                      ) / queueTickets.length
+                    )
+                  : 0}{" "}
+                min
               </div>
               <div className="text-sm text-gray-600">Tiempo Promedio</div>
             </div>
@@ -204,9 +226,13 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="text-center">
-                        <div className={`text-lg font-bold ${
-                          ticket.priority === 'priority' ? 'text-red-600' : 'text-primary'
-                        }`}>
+                        <div
+                          className={`text-lg font-bold ${
+                            ticket.priority === "priority"
+                              ? "text-red-600"
+                              : "text-primary"
+                          }`}
+                        >
                           #{index + 1}
                         </div>
                         <div className="text-xs text-gray-500">Posición</div>
@@ -217,8 +243,14 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
                           <span className="font-bold text-lg text-gray-900">
                             {ticket.number}
                           </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(ticket.priority)}`}>
-                            {ticket.priority === 'priority' ? 'Prioritario' : 'Normal'}
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+                              ticket.priority
+                            )}`}
+                          >
+                            {ticket.priority === "priority"
+                              ? "Prioritario"
+                              : "Normal"}
                           </span>
                         </div>
 
@@ -236,10 +268,11 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
 
                           <div>
                             <p className="text-sm text-gray-600">
-                              {ticket.serviceType || 'Servicio General'}
+                              {ticket.serviceType || "Servicio General"}
                             </p>
                             <p className="text-xs text-gray-500">
-                              Tiempo estimado: {formatTime(ticket.estimatedWaitTime)}
+                              Tiempo estimado:{" "}
+                              {formatTime(ticket.estimatedWaitTime)}
                             </p>
                           </div>
                         </div>
@@ -268,7 +301,8 @@ export default function QueueModal({ show, onClose }: QueueModalProps) {
             <div className="text-sm text-gray-500">
               {queueTickets.length > 0 && (
                 <span>
-                  Los tickets se muestran en orden de atención (prioridad + llegada)
+                  Los tickets se muestran en orden de atención (prioridad +
+                  llegada)
                 </span>
               )}
             </div>

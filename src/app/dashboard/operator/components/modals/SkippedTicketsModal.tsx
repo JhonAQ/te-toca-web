@@ -69,7 +69,10 @@ export default function SkippedTicketsModal({
       console.log("📊 Skipped tickets response:", data);
 
       if (data.success) {
-        console.log("✅ REAL skipped tickets loaded:", data.skippedTickets?.length || 0);
+        console.log(
+          "✅ REAL skipped tickets loaded:",
+          data.skippedTickets?.length || 0
+        );
         setSkippedTickets(data.skippedTickets || []);
       } else {
         throw new Error(data.message || "Error al obtener tickets saltados");
@@ -122,7 +125,9 @@ export default function SkippedTicketsModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Tickets Saltados</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Tickets Saltados
+            </h2>
             <p className="text-sm text-gray-500 mt-1">
               {loading
                 ? "Cargando..."
@@ -161,7 +166,8 @@ export default function SkippedTicketsModal({
                 No hay tickets saltados en esta cola
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Los tickets que saltes aparecerán aquí para que puedas retomarlos
+                Los tickets que saltes aparecerán aquí para que puedas
+                retomarlos
               </p>
             </div>
           ) : (

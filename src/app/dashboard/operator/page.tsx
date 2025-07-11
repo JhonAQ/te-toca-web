@@ -201,8 +201,12 @@ export default function OperatorDashboard() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          console.log("✅ REAL queue status:", data.waitingCount, "people waiting");
-          
+          console.log(
+            "✅ REAL queue status:",
+            data.waitingCount,
+            "people waiting"
+          );
+
           // IMPORTANTE: Actualizar contador en tiempo real
           setQueueCount(data.waitingCount || 0);
           console.log("🔄 Queue count updated to:", data.waitingCount || 0);
@@ -505,14 +509,14 @@ export default function OperatorDashboard() {
 
       const data = await response.json();
       console.log("📊 Select skipped ticket response:", data);
-      
+
       if (data.success) {
         console.log("✅ Skipped ticket selected successfully:", data.message);
-        
+
         // Actualizar ticket actual
         setCurrentTicket(data.ticket.number);
         setCustomerName(data.ticket.customerName);
-        
+
         // Cerrar modal
         setShowSkippedModal(false);
 
