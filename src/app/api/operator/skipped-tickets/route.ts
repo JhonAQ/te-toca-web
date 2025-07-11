@@ -1,10 +1,12 @@
 import { NextRequest } from 'next/server'
 import { TicketService } from '@/lib/services/ticket.service'
+import { WorkerService } from '@/lib/services/worker.service'
 import { withWorkerAuth } from '@/lib/middleware/auth'
 import { queueStatusQuerySchema } from '@/lib/validations/queue.schemas'
 import { 
   successResponse, 
   validationErrorResponse,
+  forbiddenResponse,
   internalErrorResponse 
 } from '@/lib/utils/response'
 
@@ -24,7 +26,14 @@ export const GET = withWorkerAuth(async (request: NextRequest, worker) => {
 
     const { queueId: validatedQueueId } = validation.data
 
-    // Obtener tickets saltados
+    // Verificar que el worker tiene acceso a esta cola
+    const hasAccess = await WorkerService.validateQueueAccess(worker.id, validatedQueueId)
+    if (!hasAccess) {
+      console.log('❌ Worker does not have access to queue:', validatedQueueId)
+      return forbiddenResponse('No tienes acceso a esta cola')
+    }
+
+    // Obtener tickets saltados de la cola
     const skippedTickets = await TicketService.getSkippedTickets(validatedQueueId)
 
     console.log('✅ Found', skippedTickets.length, 'skipped tickets')
@@ -37,13 +46,13 @@ export const GET = withWorkerAuth(async (request: NextRequest, worker) => {
         customerPhone: ticket.customerPhone,
         waitTime: ticket.waitTime,
         reason: ticket.reason,
-        skippedAt: ticket.skippedAt.toISOString(),
-        priority: ticket.priority
+        priority: ticket.priority,
+        skippedAt: ticket.skippedAt.toISOString()
       }))
     })
 
   } catch (error) {
     console.error('❌ Error getting skipped tickets:', error)
-    return internalErrorResponse('Error al obtener los tickets saltados')
+    return internalErrorResponse('Error al obtener tickets saltados')
   }
 })

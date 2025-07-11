@@ -58,7 +58,7 @@ export default function OperatorDashboard() {
       await Promise.all([
         fetchQueueDetails(),
         fetchNextTicket(),
-        fetchQueueStatus()
+        fetchQueueStatus(),
       ]);
     } catch (error) {
       console.error("Error al inicializar workspace:", error);
@@ -109,7 +109,7 @@ export default function OperatorDashboard() {
         // Actualizar estado con detalles REALES de la cola
         setSelectedQueueName(data.queue.name);
         localStorage.setItem("selectedQueueName", data.queue.name);
-        
+
         // Actualizar contador real de la cola
         setQueueCount(data.queue.waitingCount || 0);
       } else {
@@ -134,11 +134,14 @@ export default function OperatorDashboard() {
 
       console.log("🎫 Fetching REAL next ticket for queue:", selectedQueue);
 
-      const response = await fetch(`/api/operator/next-ticket?queueId=${selectedQueue}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `/api/operator/next-ticket?queueId=${selectedQueue}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -186,16 +189,23 @@ export default function OperatorDashboard() {
 
       console.log("📊 Fetching REAL queue status for:", selectedQueue);
 
-      const response = await fetch(`/api/operator/queue-status?queueId=${selectedQueue}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `/api/operator/queue-status?queueId=${selectedQueue}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          console.log("✅ REAL queue status:", data.waitingCount, "people waiting");
+          console.log(
+            "✅ REAL queue status:",
+            data.waitingCount,
+            "people waiting"
+          );
           setQueueCount(data.waitingCount || 0);
         }
       } else {
@@ -221,27 +231,41 @@ export default function OperatorDashboard() {
     if (!currentTicket) return;
 
     try {
-      await handleApiCall(
-        () => {
-          const token = localStorage.getItem("authToken");
-          return fetch("/api/operator/call-customer", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ ticketNumber: currentTicket }),
-          });
-        },
-        { success: true },
-        500
-      );
+      console.log("📞 Calling REAL customer for ticket:", currentTicket);
 
-      if (isDevMode()) {
-        console.log(`📞 Llamando al cliente ${currentTicket}`);
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("/api/operator/call-customer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ticketNumber: currentTicket }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("✅ Customer called successfully:", data.message);
+        // Mostrar información del cliente llamado
+        alert(
+          `Cliente llamado: ${data.ticket.customerName}\nTeléfono: ${
+            data.ticket.customerPhone || "No disponible"
+          }`
+        );
+      } else {
+        throw new Error(data.message || "Error al llamar al cliente");
       }
     } catch (error) {
-      console.error("Error al llamar al cliente:", error);
+      console.error("❌ Error calling customer:", error);
+      alert(
+        "Error al llamar al cliente: " +
+          (error instanceof Error ? error.message : "Error desconocido")
+      );
     }
   };
 
@@ -249,65 +273,102 @@ export default function OperatorDashboard() {
     if (!currentTicket) return;
 
     try {
-      await handleApiCall(
-        () => {
-          const token = localStorage.getItem("authToken");
-          return fetch("/api/operator/finish-attention", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ ticketNumber: currentTicket }),
-          });
-        },
-        { success: true },
-        500
-      );
+      console.log("✅ Finishing REAL attention for ticket:", currentTicket);
 
-      if (isDevMode()) {
-        console.log(`✅ Atención terminada para ${currentTicket}`);
-        const nextIndex = (mockTicketIndex + 1) % mockTickets.length;
-        setMockTicketIndex(nextIndex);
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("/api/operator/finish-attention", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ticketNumber: currentTicket }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      await fetchNextTicket();
-      await fetchQueueStatus();
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("✅ Attention finished successfully:", data.message);
+
+        // Actualizar con el siguiente ticket
+        if (data.nextTicket) {
+          setCurrentTicket(data.nextTicket.number);
+          setCustomerName(data.nextTicket.customerName);
+        } else {
+          setCurrentTicket(null);
+          setCustomerName(null);
+        }
+
+        // Actualizar estado de la cola
+        await fetchQueueStatus();
+      } else {
+        throw new Error(data.message || "Error al terminar atención");
+      }
     } catch (error) {
-      console.error("Error al terminar atención:", error);
+      console.error("❌ Error finishing attention:", error);
+      alert(
+        "Error al terminar atención: " +
+          (error instanceof Error ? error.message : "Error desconocido")
+      );
     }
   };
 
   const handleSkipTurn = async () => {
     if (!currentTicket) return;
 
-    try {
-      await handleApiCall(
-        () => {
-          const token = localStorage.getItem("authToken");
-          return fetch("/api/operator/skip-turn", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ ticketNumber: currentTicket }),
-          });
-        },
-        { success: true },
-        500
-      );
+    const reason = prompt(
+      "Ingresa el motivo para saltar este turno (opcional):"
+    );
 
-      if (isDevMode()) {
-        console.log(`⏭️ Turno saltado para ${currentTicket}`);
-        const nextIndex = (mockTicketIndex + 1) % mockTickets.length;
-        setMockTicketIndex(nextIndex);
+    try {
+      console.log("⏭️ Skipping REAL turn for ticket:", currentTicket);
+
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("/api/operator/skip-turn", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ticketNumber: currentTicket,
+          reason: reason || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      await fetchNextTicket();
-      await fetchQueueStatus();
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("✅ Turn skipped successfully:", data.message);
+
+        // Actualizar con el siguiente ticket
+        if (data.nextTicket) {
+          setCurrentTicket(data.nextTicket.number);
+          setCustomerName(data.nextTicket.customerName);
+        } else {
+          setCurrentTicket(null);
+          setCustomerName(null);
+        }
+
+        // Actualizar estado de la cola
+        await fetchQueueStatus();
+      } else {
+        throw new Error(data.message || "Error al saltar turno");
+      }
     } catch (error) {
-      console.error("Error al saltar turno:", error);
+      console.error("❌ Error skipping turn:", error);
+      alert(
+        "Error al saltar turno: " +
+          (error instanceof Error ? error.message : "Error desconocido")
+      );
     }
   };
 
@@ -315,35 +376,55 @@ export default function OperatorDashboard() {
     if (!currentTicket) return;
 
     try {
-      await handleApiCall(
-        () => {
-          const token = localStorage.getItem("authToken");
-          return fetch("/api/operator/cancel-ticket", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              ticketNumber: currentTicket,
-              reason: reason,
-            }),
-          });
-        },
-        { success: true },
-        500
+      console.log(
+        "❌ Cancelling REAL ticket:",
+        currentTicket,
+        "reason:",
+        reason
       );
 
-      if (isDevMode()) {
-        console.log(`❌ Ticket cancelado ${currentTicket} - Razón: ${reason}`);
-        const nextIndex = (mockTicketIndex + 1) % mockTickets.length;
-        setMockTicketIndex(nextIndex);
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("/api/operator/cancel-ticket", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ticketNumber: currentTicket,
+          reason: reason,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      await fetchNextTicket();
-      await fetchQueueStatus();
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("✅ Ticket cancelled successfully:", data.message);
+
+        // Actualizar con el siguiente ticket
+        if (data.nextTicket) {
+          setCurrentTicket(data.nextTicket.number);
+          setCustomerName(data.nextTicket.customerName);
+        } else {
+          setCurrentTicket(null);
+          setCustomerName(null);
+        }
+
+        // Actualizar estado de la cola
+        await fetchQueueStatus();
+      } else {
+        throw new Error(data.message || "Error al cancelar ticket");
+      }
     } catch (error) {
-      console.error("Error al cancelar ticket:", error);
+      console.error("❌ Error cancelling ticket:", error);
+      alert(
+        "Error al cancelar ticket: " +
+          (error instanceof Error ? error.message : "Error desconocido")
+      );
     }
   };
 
@@ -375,6 +456,13 @@ export default function OperatorDashboard() {
   };
 
   const handleBackToQueues = () => {
+    console.log("🔙 Returning to queue selection");
+
+    // Limpiar la cola seleccionada del localStorage
+    localStorage.removeItem("selectedQueue");
+    localStorage.removeItem("selectedQueueName");
+
+    // Redirigir a la selección de colas
     router.push("/dashboard/queue-selection");
   };
 
@@ -383,30 +471,42 @@ export default function OperatorDashboard() {
     customerName: string
   ) => {
     try {
-      await handleApiCall(
-        () => {
-          const token = localStorage.getItem("authToken");
-          return fetch("/api/operator/select-skipped-ticket", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ ticketNumber }),
-          });
+      console.log("🔄 Selecting REAL skipped ticket:", ticketNumber);
+
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("/api/operator/select-skipped-ticket", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        { success: true, ticket: { number: ticketNumber, customerName } },
-        500
-      );
+        body: JSON.stringify({ ticketNumber }),
+      });
 
-      setCurrentTicket(ticketNumber);
-      setCustomerName(customerName);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
 
-      if (isDevMode()) {
-        console.log(`🔄 Ticket saltado seleccionado: ${ticketNumber}`);
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("✅ Skipped ticket selected successfully:", data.message);
+
+        // Actualizar ticket actual
+        setCurrentTicket(data.ticket.number);
+        setCustomerName(data.ticket.customerName);
+
+        // Cerrar modal
+        setShowSkippedModal(false);
+      } else {
+        throw new Error(data.message || "Error al seleccionar ticket saltado");
       }
     } catch (error) {
-      console.error("Error al seleccionar ticket saltado:", error);
+      console.error("❌ Error selecting skipped ticket:", error);
+      alert(
+        "Error al seleccionar ticket saltado: " +
+          (error instanceof Error ? error.message : "Error desconocido")
+      );
     }
   };
 

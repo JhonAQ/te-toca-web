@@ -1,23 +1,23 @@
 import { NextRequest } from 'next/server'
 import { TicketService } from '@/lib/services/ticket.service'
+import { WorkerService } from '@/lib/services/worker.service'
 import { withWorkerAuth } from '@/lib/middleware/auth'
-import { skipTurnSchema } from '@/lib/validations'
+import { skipTurnSchema } from '@/lib/validations/ticket.schemas'
 import { 
   successResponse, 
   validationErrorResponse,
-  notFoundResponse,
   forbiddenResponse,
+  notFoundResponse,
   internalErrorResponse 
 } from '@/lib/utils/response'
 
 export const POST = withWorkerAuth(async (request: NextRequest, worker) => {
   try {
-    console.log('⏭️ Skip turn request from worker:', worker.id)
+    console.log('⏭️ Skipping turn for worker:', worker.id)
 
     const body = await request.json()
-    
-    // Validar datos de entrada
     const validation = skipTurnSchema.safeParse(body)
+    
     if (!validation.success) {
       const errors = validation.error.flatten().fieldErrors
       return validationErrorResponse(errors)
@@ -25,35 +25,59 @@ export const POST = withWorkerAuth(async (request: NextRequest, worker) => {
 
     const { ticketNumber, reason } = validation.data
 
-    // Buscar el ticket
+    console.log('🎫 Skipping ticket:', ticketNumber, 'reason:', reason)
+
+    // Buscar el ticket por número
     const ticket = await TicketService.findByNumber(ticketNumber)
     if (!ticket) {
+      console.log('❌ Ticket not found:', ticketNumber)
       return notFoundResponse('Ticket no encontrado')
     }
 
-    // Verificar estado del ticket
+    // Verificar que el worker tiene acceso a esta cola
+    const hasAccess = await WorkerService.validateQueueAccess(worker.id, ticket.queueId)
+    if (!hasAccess) {
+      console.log('❌ Worker does not have access to ticket queue')
+      return forbiddenResponse('No tienes acceso a esta cola')
+    }
+
+    // Verificar que el ticket está en un estado válido para saltar
     if (!['waiting', 'called'].includes(ticket.status)) {
-      return forbiddenResponse(`El ticket ${ticketNumber} no puede ser saltado`)
+      console.log('❌ Ticket cannot be skipped in current status:', ticket.status)
+      return forbiddenResponse('Este ticket no se puede saltar en su estado actual')
     }
 
     // Saltar el ticket
-    const skippedTicket = await TicketService.skipTicket(ticket.id, reason)
+    const skippedTicket = await TicketService.skipTicket(ticket.id, reason || 'Cliente no respondió')
     if (!skippedTicket) {
-      return internalErrorResponse('Error al saltar el turno')
+      return internalErrorResponse('Error al saltar el ticket')
     }
 
-    console.log('✅ Turn skipped successfully:', ticketNumber)
+    // Obtener el siguiente ticket en la cola
+    const nextTicket = await TicketService.getNextTicketInQueue(ticket.queueId, worker.id)
+
+    console.log('✅ Ticket skipped successfully:', ticketNumber)
 
     return successResponse({
-      success: true,
-      message: 'Turno saltado exitosamente',
-      ticket: {
+      skippedTicket: {
         id: skippedTicket.id,
         number: skippedTicket.number,
+        customerName: skippedTicket.customerName,
         status: skippedTicket.status,
-        skippedAt: skippedTicket.skippedAt?.toISOString(),
-        reason: skippedTicket.reason
-      }
+        reason: skippedTicket.reason,
+        skippedAt: skippedTicket.skippedAt?.toISOString()
+      },
+      nextTicket: nextTicket ? {
+        id: nextTicket.id,
+        number: nextTicket.number,
+        customerName: nextTicket.customerName,
+        customerPhone: nextTicket.customerPhone,
+        customerEmail: nextTicket.customerEmail,
+        serviceType: nextTicket.serviceType,
+        priority: nextTicket.priority,
+        estimatedWaitTime: nextTicket.estimatedWaitTime
+      } : null,
+      message: `Ticket ${skippedTicket.number} saltado. Motivo: ${skippedTicket.reason}`
     })
 
   } catch (error) {

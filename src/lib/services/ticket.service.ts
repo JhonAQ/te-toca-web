@@ -118,30 +118,14 @@ export class TicketService {
   }
 
   static async callTicket(ticketId: string, workerId: string): Promise<Ticket | null> {
-    console.log('📞 Calling ticket:', ticketId, 'by worker:', workerId)
-
-    // En desarrollo, simular llamada
-    if (process.env.NODE_ENV === 'development') {
-      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
-      if (ticketIndex >= 0) {
-        this.mockTickets[ticketIndex] = {
-          ...this.mockTickets[ticketIndex],
-          status: 'called',
-          workerId,
-          calledAt: new Date(),
-          updatedAt: new Date()
-        }
-        return this.mockTickets[ticketIndex]
-      }
-      return null
-    }
+    console.log('📞 Calling REAL ticket:', ticketId, 'by worker:', workerId)
 
     try {
       const ticket = await db.ticket.update({
         where: { id: ticketId },
         data: {
           status: 'called',
-          workerId,
+          workerId, // IMPORTANTE: Asignar el worker al ticket
           calledAt: new Date(),
           updatedAt: new Date()
         },
@@ -151,40 +135,16 @@ export class TicketService {
         }
       })
 
-      // Enviar notificación al cliente (implementar según necesidades)
-      await this.sendNotificationToClient(ticket)
-
-      return ticket
+      console.log('✅ REAL ticket called successfully:', ticket.number, 'assigned to worker:', workerId)
+      return this.formatTicketResponse(ticket)
     } catch (error) {
-      console.error('❌ Error calling ticket:', error)
+      console.error('❌ Error calling REAL ticket:', error)
       return null
     }
   }
 
   static async completeTicket(ticketId: string, notes?: string, serviceRating?: number): Promise<Ticket | null> {
-    console.log('✅ Completing ticket:', ticketId)
-
-    // En desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
-      if (ticketIndex >= 0) {
-        const now = new Date()
-        const serviceTime = this.mockTickets[ticketIndex].calledAt 
-          ? Math.floor((now.getTime() - this.mockTickets[ticketIndex].calledAt!.getTime()) / 1000 / 60)
-          : 0
-
-        this.mockTickets[ticketIndex] = {
-          ...this.mockTickets[ticketIndex],
-          status: 'completed',
-          completedAt: now,
-          serviceTime,
-          notes: notes || '',
-          updatedAt: now
-        }
-        return this.mockTickets[ticketIndex]
-      }
-      return null
-    }
+    console.log('✅ Completing REAL ticket:', ticketId)
 
     try {
       const ticket = await db.ticket.findUnique({ where: { id: ticketId } })
@@ -194,42 +154,33 @@ export class TicketService {
         ? Math.floor((Date.now() - ticket.calledAt.getTime()) / 1000 / 60)
         : 0
 
+      const actualWaitTime = ticket.createdAt
+        ? Math.floor((Date.now() - ticket.createdAt.getTime()) / 1000 / 60)
+        : 0
+
       const updatedTicket = await db.ticket.update({
         where: { id: ticketId },
         data: {
           status: 'completed',
           completedAt: new Date(),
           serviceTime,
+          actualWaitTime,
           notes: notes || ticket.notes,
           updatedAt: new Date()
+          // Mantener workerId para trazabilidad
         }
       })
 
-      return updatedTicket
+      console.log('✅ REAL ticket completed:', updatedTicket.number)
+      return this.formatTicketResponse(updatedTicket)
     } catch (error) {
-      console.error('❌ Error completing ticket:', error)
+      console.error('❌ Error completing REAL ticket:', error)
       return null
     }
   }
 
   static async skipTicket(ticketId: string, reason?: string): Promise<Ticket | null> {
-    console.log('⏭️ Skipping ticket:', ticketId)
-
-    // En desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
-      if (ticketIndex >= 0) {
-        this.mockTickets[ticketIndex] = {
-          ...this.mockTickets[ticketIndex],
-          status: 'skipped',
-          skippedAt: new Date(),
-          reason: reason || 'Cliente no respondió',
-          updatedAt: new Date()
-        }
-        return this.mockTickets[ticketIndex]
-      }
-      return null
-    }
+    console.log('⏭️ Skipping REAL ticket:', ticketId)
 
     try {
       const ticket = await db.ticket.update({
@@ -242,31 +193,16 @@ export class TicketService {
         }
       })
 
-      return ticket
+      console.log('✅ REAL ticket skipped:', ticket.number)
+      return this.formatTicketResponse(ticket)
     } catch (error) {
-      console.error('❌ Error skipping ticket:', error)
+      console.error('❌ Error skipping REAL ticket:', error)
       return null
     }
   }
 
   static async cancelTicket(ticketId: string, reason: string): Promise<Ticket | null> {
-    console.log('❌ Cancelling ticket:', ticketId)
-
-    // En desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
-      if (ticketIndex >= 0) {
-        this.mockTickets[ticketIndex] = {
-          ...this.mockTickets[ticketIndex],
-          status: 'cancelled',
-          cancelledAt: new Date(),
-          reason,
-          updatedAt: new Date()
-        }
-        return this.mockTickets[ticketIndex]
-      }
-      return null
-    }
+    console.log('❌ Cancelling REAL ticket:', ticketId)
 
     try {
       const ticket = await db.ticket.update({
@@ -279,30 +215,16 @@ export class TicketService {
         }
       })
 
-      return ticket
+      console.log('✅ REAL ticket cancelled:', ticket.number)
+      return this.formatTicketResponse(ticket)
     } catch (error) {
-      console.error('❌ Error cancelling ticket:', error)
+      console.error('❌ Error cancelling REAL ticket:', error)
       return null
     }
   }
 
   static async resumeSkippedTicket(ticketId: string): Promise<Ticket | null> {
-    console.log('🔄 Resuming skipped ticket:', ticketId)
-
-    // En desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      const ticketIndex = this.mockTickets.findIndex(t => t.id === ticketId)
-      if (ticketIndex >= 0) {
-        this.mockTickets[ticketIndex] = {
-          ...this.mockTickets[ticketIndex],
-          status: 'in_progress',
-          resumedAt: new Date(),
-          updatedAt: new Date()
-        }
-        return this.mockTickets[ticketIndex]
-      }
-      return null
-    }
+    console.log('🔄 Resuming REAL skipped ticket:', ticketId)
 
     try {
       const ticket = await db.ticket.update({
@@ -314,9 +236,10 @@ export class TicketService {
         }
       })
 
-      return ticket
+      console.log('✅ REAL skipped ticket resumed:', ticket.number)
+      return this.formatTicketResponse(ticket)
     } catch (error) {
-      console.error('❌ Error resuming ticket:', error)
+      console.error('❌ Error resuming REAL ticket:', error)
       return null
     }
   }
@@ -411,13 +334,6 @@ export class TicketService {
   }
 
   static async findByNumber(ticketNumber: string, queueId?: string): Promise<Ticket | null> {
-    // En desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      return this.mockTickets.find(t => 
-        t.number === ticketNumber && (!queueId || t.queueId === queueId)
-      ) || null
-    }
-
     try {
       const ticket = await db.ticket.findFirst({
         where: {
@@ -426,10 +342,41 @@ export class TicketService {
         }
       })
 
-      return ticket
+      return ticket ? this.formatTicketResponse(ticket) : null
     } catch (error) {
-      console.error('❌ Error finding ticket by number:', error)
+      console.error('❌ Error finding REAL ticket by number:', error)
       return null
+    }
+  }
+
+  private static formatTicketResponse(ticket: any): Ticket {
+    return {
+      id: ticket.id,
+      number: ticket.number,
+      queueId: ticket.queueId,
+      tenantId: ticket.tenantId,
+      userId: ticket.userId,
+      customerName: ticket.customerName,
+      customerPhone: ticket.customerPhone,
+      customerEmail: ticket.customerEmail,
+      serviceType: ticket.serviceType,
+      priority: ticket.priority as 'normal' | 'priority',
+      status: ticket.status as TicketStatus,
+      position: ticket.position,
+      estimatedWaitTime: ticket.estimatedWaitTime,
+      actualWaitTime: ticket.actualWaitTime,
+      serviceTime: ticket.serviceTime,
+      notes: ticket.notes,
+      reason: ticket.reason,
+      workerId: ticket.workerId,
+      createdAt: ticket.createdAt,
+      updatedAt: ticket.updatedAt,
+      calledAt: ticket.calledAt,
+      completedAt: ticket.completedAt,
+      cancelledAt: ticket.cancelledAt,
+      skippedAt: ticket.skippedAt,
+      pausedAt: ticket.pausedAt,
+      resumedAt: ticket.resumedAt
     }
   }
 
