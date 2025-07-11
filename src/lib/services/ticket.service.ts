@@ -54,24 +54,8 @@ export class TicketService {
     }
   ]
 
-  static async getNextTicketInQueue(queueId: string, workerId: string): Promise<Ticket | null> {
-    console.log('🎫 Getting next ticket for queue:', queueId)
-
-    // En desarrollo, simular obtención del siguiente ticket
-    if (process.env.NODE_ENV === 'development') {
-      const waitingTickets = this.mockTickets.filter(
-        t => t.queueId === queueId && t.status === 'waiting'
-      ).sort((a, b) => {
-        // Prioridad primero, luego por posición
-        if (a.priority === 'priority' && b.priority === 'normal') return -1
-        if (a.priority === 'normal' && b.priority === 'priority') return 1
-        return a.position - b.position
-      })
-
-      const nextTicket = waitingTickets[0] || null
-      console.log('✅ Next ticket found:', nextTicket?.number || 'none')
-      return nextTicket
-    }
+  static async getNextTicketInQueue(queueId: string, workerId?: string): Promise<Ticket | null> {
+    console.log('🎫 Getting REAL next ticket for queue:', queueId)
 
     try {
       const ticket = await db.ticket.findFirst({
@@ -85,13 +69,50 @@ export class TicketService {
         ],
         include: {
           user: true,
-          queue: true
+          queue: {
+            include: {
+              company: true
+            }
+          }
         }
       })
 
-      return ticket
+      if (ticket) {
+        console.log('✅ REAL next ticket found:', ticket.number, 'for:', ticket.customerName)
+        return {
+          id: ticket.id,
+          number: ticket.number,
+          queueId: ticket.queueId,
+          tenantId: ticket.tenantId,
+          userId: ticket.userId,
+          customerName: ticket.customerName,
+          customerPhone: ticket.customerPhone,
+          customerEmail: ticket.customerEmail,
+          serviceType: ticket.serviceType,
+          priority: ticket.priority as 'normal' | 'priority',
+          status: ticket.status as TicketStatus,
+          position: ticket.position,
+          estimatedWaitTime: ticket.estimatedWaitTime,
+          actualWaitTime: ticket.actualWaitTime,
+          serviceTime: ticket.serviceTime,
+          notes: ticket.notes,
+          reason: ticket.reason,
+          workerId: ticket.workerId,
+          createdAt: ticket.createdAt,
+          updatedAt: ticket.updatedAt,
+          calledAt: ticket.calledAt,
+          completedAt: ticket.completedAt,
+          cancelledAt: ticket.cancelledAt,
+          skippedAt: ticket.skippedAt,
+          pausedAt: ticket.pausedAt,
+          resumedAt: ticket.resumedAt
+        }
+      } else {
+        console.log('ℹ️ No REAL tickets waiting in queue:', queueId)
+        return null
+      }
     } catch (error) {
-      console.error('❌ Error getting next ticket:', error)
+      console.error('❌ Error getting REAL next ticket:', error)
       return null
     }
   }
@@ -355,28 +376,7 @@ export class TicketService {
   }
 
   static async getUpcomingTickets(queueId: string, limit: number = 5): Promise<UpcomingTicket[]> {
-    console.log('👥 Getting upcoming tickets for queue:', queueId)
-
-    // En desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      const upcomingTickets = this.mockTickets
-        .filter(t => t.queueId === queueId && t.status === 'waiting')
-        .sort((a, b) => {
-          if (a.priority === 'priority' && b.priority === 'normal') return -1
-          if (a.priority === 'normal' && b.priority === 'priority') return 1
-          return a.position - b.position
-        })
-        .slice(0, limit)
-        .map(ticket => ({
-          number: ticket.number,
-          customerName: ticket.customerName,
-          estimatedTime: ticket.estimatedWaitTime,
-          priority: ticket.priority,
-          serviceType: ticket.serviceType
-        }))
-
-      return upcomingTickets
-    }
+    console.log('👥 Getting REAL upcoming tickets for queue:', queueId)
 
     try {
       const tickets = await db.ticket.findMany({
@@ -394,15 +394,18 @@ export class TicketService {
         }
       })
 
-      return tickets.map(ticket => ({
+      const upcomingTickets = tickets.map(ticket => ({
         number: ticket.number,
         customerName: ticket.customerName,
         estimatedTime: ticket.estimatedWaitTime,
         priority: ticket.priority as 'normal' | 'priority',
         serviceType: ticket.serviceType
       }))
+
+      console.log('✅ Found', upcomingTickets.length, 'REAL upcoming tickets')
+      return upcomingTickets
     } catch (error) {
-      console.error('❌ Error getting upcoming tickets:', error)
+      console.error('❌ Error getting REAL upcoming tickets:', error)
       return []
     }
   }

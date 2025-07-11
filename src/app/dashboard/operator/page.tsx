@@ -56,9 +56,9 @@ export default function OperatorDashboard() {
   const initializeWorkspace = async () => {
     try {
       await Promise.all([
-        fetchNextTicket(),
-        fetchQueueStatus(),
         fetchQueueDetails(),
+        fetchNextTicket(),
+        fetchQueueStatus()
       ]);
     } catch (error) {
       console.error("Error al inicializar workspace:", error);
@@ -77,7 +77,7 @@ export default function OperatorDashboard() {
         return;
       }
 
-      console.log("🔍 Fetching queue details for:", selectedQueue);
+      console.log("🔍 Fetching REAL queue details for:", selectedQueue);
 
       const response = await fetch(
         `/api/operator/queue-details?queueId=${selectedQueue}`,
@@ -94,71 +94,126 @@ export default function OperatorDashboard() {
           router.push("/auth/login");
           return;
         }
+        if (response.status === 403) {
+          console.log("❌ Access denied to queue");
+          router.push("/dashboard/queue-selection");
+          return;
+        }
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
 
-      if (data.success) {
-        console.log("✅ Queue details loaded:", data.queue?.name);
-        // Actualizar estado con detalles reales de la cola
-        if (data.queue?.name) {
-          setSelectedQueueName(data.queue.name);
-          localStorage.setItem("selectedQueueName", data.queue.name);
-        }
+      if (data.success && data.queue) {
+        console.log("✅ REAL Queue details loaded:", data.queue.name);
+        // Actualizar estado con detalles REALES de la cola
+        setSelectedQueueName(data.queue.name);
+        localStorage.setItem("selectedQueueName", data.queue.name);
+        
+        // Actualizar contador real de la cola
+        setQueueCount(data.queue.waitingCount || 0);
+      } else {
+        throw new Error(data.message || "Error al obtener detalles de la cola");
       }
     } catch (error) {
-      console.error("❌ Error fetching queue details:", error);
+      console.error("❌ Error fetching REAL queue details:", error);
+      // Si hay error accediendo a la cola real, redirigir al dashboard
+      router.push("/dashboard/queue-selection");
     }
   };
 
   const fetchNextTicket = async () => {
     try {
-      const data = await handleApiCall(
-        () => {
-          const token = localStorage.getItem("authToken");
-          const selectedQueue = localStorage.getItem("selectedQueue");
-          return fetch(`/api/operator/next-ticket?queueId=${selectedQueue}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        },
-        {
-          ticket: {
-            number: mockTickets[mockTicketIndex].number,
-            customerName: mockTickets[mockTicketIndex].customerName,
-          },
-        },
-        300
-      );
+      const token = localStorage.getItem("authToken");
+      const selectedQueue = localStorage.getItem("selectedQueue");
 
-      setCurrentTicket(data.ticket?.number || null);
-      setCustomerName(data.ticket?.customerName || null);
+      if (!token || !selectedQueue) {
+        router.push("/dashboard/queue-selection");
+        return;
+      }
+
+      console.log("🎫 Fetching REAL next ticket for queue:", selectedQueue);
+
+      const response = await fetch(`/api/operator/next-ticket?queueId=${selectedQueue}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.ticket) {
+          console.log("✅ REAL ticket found:", data.ticket.number);
+          setCurrentTicket(data.ticket.number);
+          setCustomerName(data.ticket.customerName);
+        } else {
+          console.log("ℹ️ No tickets in queue");
+          setCurrentTicket(null);
+          setCustomerName(null);
+        }
+      } else {
+        // Si la API real falla, usar fallback de desarrollo
+        if (isDevMode()) {
+          console.log("🔄 Using fallback mock data for next ticket");
+          const mockTicket = mockTickets[mockTicketIndex];
+          setCurrentTicket(mockTicket.number);
+          setCustomerName(mockTicket.customerName);
+        } else {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+      }
     } catch (error) {
-      console.error("Error al obtener siguiente ticket:", error);
+      console.error("❌ Error fetching REAL next ticket:", error);
+      // En caso de error, usar datos mock solo en desarrollo
+      if (isDevMode()) {
+        console.log("🔄 Fallback to mock data due to error");
+        const mockTicket = mockTickets[mockTicketIndex];
+        setCurrentTicket(mockTicket.number);
+        setCustomerName(mockTicket.customerName);
+      }
     }
   };
 
   const fetchQueueStatus = async () => {
     try {
-      const data = await handleApiCall(
-        () => {
-          const token = localStorage.getItem("authToken");
-          const selectedQueue = localStorage.getItem("selectedQueue");
-          return fetch(`/api/operator/queue-status?queueId=${selectedQueue}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        },
-        { waitingCount: Math.floor(Math.random() * 20) + 5 },
-        300
-      );
+      const token = localStorage.getItem("authToken");
+      const selectedQueue = localStorage.getItem("selectedQueue");
 
-      setQueueCount(data.waitingCount || 0);
+      if (!token || !selectedQueue) {
+        router.push("/dashboard/queue-selection");
+        return;
+      }
+
+      console.log("📊 Fetching REAL queue status for:", selectedQueue);
+
+      const response = await fetch(`/api/operator/queue-status?queueId=${selectedQueue}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          console.log("✅ REAL queue status:", data.waitingCount, "people waiting");
+          setQueueCount(data.waitingCount || 0);
+        }
+      } else {
+        // Si la API real falla, usar fallback de desarrollo
+        if (isDevMode()) {
+          console.log("🔄 Using fallback mock data for queue status");
+          setQueueCount(Math.floor(Math.random() * 20) + 5);
+        } else {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+      }
     } catch (error) {
-      console.error("Error al obtener estado de cola:", error);
+      console.error("❌ Error fetching REAL queue status:", error);
+      // En caso de error, usar datos mock solo en desarrollo
+      if (isDevMode()) {
+        console.log("🔄 Fallback to mock data due to error");
+        setQueueCount(Math.floor(Math.random() * 20) + 5);
+      }
     }
   };
 

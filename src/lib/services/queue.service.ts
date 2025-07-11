@@ -10,27 +10,14 @@ interface Queue {
 
 export class QueueService {
   static async findById(id: string): Promise<Queue | null> {
-    console.log('🔍 Finding queue by ID:', id)
+    console.log('🔍 Finding REAL queue by ID:', id)
     
-    // En desarrollo, simular búsqueda de cola
-    if (process.env.NODE_ENV === 'development') {
-      const mockQueue = {
-        id: id,
-        name: id === '1' ? 'Atención General' : id === '2' ? 'Soporte Técnico' : 'Cola Demo',
-        description: id === '1' ? 'Cola principal para consultas generales' : 
-                     id === '2' ? 'Resolución de problemas técnicos' : 'Cola de demostración',
-        tenantId: 'default',
-        isActive: true
-      }
-      console.log('✅ Mock queue found:', mockQueue.name)
-      return mockQueue
-    }
-
     try {
       const queue = await db.queue.findUnique({
         where: { id },
         include: {
           company: true,
+          tenant: true,
           _count: {
             select: {
               tickets: {
@@ -41,10 +28,26 @@ export class QueueService {
         }
       })
 
-      console.log(queue ? '✅ Queue found' : '❌ Queue not found', 'for ID:', id)
-      return queue
+      if (queue) {
+        console.log('✅ REAL Queue found:', queue.name, 'in tenant:', queue.tenant.name)
+        return {
+          id: queue.id,
+          name: queue.name,
+          description: queue.description || '',
+          tenantId: queue.tenantId,
+          isActive: queue.isActive,
+          waitingCount: queue._count.tickets,
+          averageWaitTime: queue.averageWaitTime || 0,
+          priority: queue.priority || 'medium',
+          category: queue.category || 'General',
+          companyName: queue.company?.name || ''
+        }
+      } else {
+        console.log('❌ REAL Queue not found for ID:', id)
+        return null
+      }
     } catch (error) {
-      console.error('❌ Error finding queue:', error)
+      console.error('❌ Error finding REAL queue:', error)
       return null
     }
   }
@@ -114,26 +117,16 @@ export class QueueService {
   }
 
   static async getQueueStats(queueId: string) {
-    console.log('📊 Getting stats for queue:', queueId)
+    console.log('📊 Getting REAL stats for queue:', queueId)
     
-    // En desarrollo, devolver stats mock
-    if (process.env.NODE_ENV === 'development') {
-      return {
-        waitingCount: Math.floor(Math.random() * 15) + 1,
-        averageWaitTime: Math.floor(Math.random() * 20) + 5,
-        totalProcessedToday: Math.floor(Math.random() * 50) + 10,
-        currentOperators: Math.floor(Math.random() * 3) + 1
-      }
-    }
-
     try {
       const [waitingCount, avgWaitTime, processedToday, operators] = await Promise.all([
-        // Contar tickets en espera
+        // Contar tickets en espera REALES
         db.ticket.count({
           where: { queueId, status: 'waiting' }
         }),
         
-        // Calcular tiempo promedio de espera
+        // Calcular tiempo promedio de espera REAL
         db.ticket.aggregate({
           where: { 
             queueId, 
@@ -145,7 +138,7 @@ export class QueueService {
           _avg: { actualWaitTime: true }
         }),
         
-        // Contar procesados hoy
+        // Contar procesados hoy REALES
         db.ticket.count({
           where: {
             queueId,
@@ -156,20 +149,23 @@ export class QueueService {
           }
         }),
         
-        // Contar operarios asignados
+        // Contar operarios asignados REALES
         db.worker.count({
           where: { currentQueueId: queueId, isActive: true }
         })
       ])
 
-      return {
+      const realStats = {
         waitingCount,
         averageWaitTime: Math.round(avgWaitTime._avg.actualWaitTime || 0),
         totalProcessedToday: processedToday,
         currentOperators: operators
       }
+
+      console.log('✅ REAL queue stats:', realStats)
+      return realStats
     } catch (error) {
-      console.error('❌ Error getting queue stats:', error)
+      console.error('❌ Error getting REAL queue stats:', error)
       return {
         waitingCount: 0,
         averageWaitTime: 0,
