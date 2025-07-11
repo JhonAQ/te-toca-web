@@ -58,7 +58,7 @@ export default function OperatorDashboard() {
       await Promise.all([
         fetchNextTicket(),
         fetchQueueStatus(),
-        fetchQueueDetails()
+        fetchQueueDetails(),
       ]);
     } catch (error) {
       console.error("Error al inicializar workspace:", error);
@@ -71,7 +71,7 @@ export default function OperatorDashboard() {
     try {
       const token = localStorage.getItem("authToken");
       const selectedQueue = localStorage.getItem("selectedQueue");
-      
+
       if (!token || !selectedQueue) {
         router.push("/dashboard/queue-selection");
         return;
@@ -79,11 +79,14 @@ export default function OperatorDashboard() {
 
       console.log("🔍 Fetching queue details for:", selectedQueue);
 
-      const response = await fetch(`/api/operator/queue-details?queueId=${selectedQueue}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `/api/operator/queue-details?queueId=${selectedQueue}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -95,7 +98,7 @@ export default function OperatorDashboard() {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         console.log("✅ Queue details loaded:", data.queue?.name);
         // Actualizar estado con detalles reales de la cola
@@ -309,9 +312,7 @@ export default function OperatorDashboard() {
 
       setIsPaused(!isPaused);
       if (isDevMode()) {
-        console.log(
-          isPaused ? "▶ Reanudando atención" : "⏸Pausando atención"
-        );
+        console.log(isPaused ? "▶ Reanudando atención" : "⏸Pausando atención");
       }
     } catch (error) {
       console.error("Error al cambiar estado de pausa:", error);
